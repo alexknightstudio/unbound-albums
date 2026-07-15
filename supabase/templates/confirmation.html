@@ -1,0 +1,31 @@
+<!--
+  Sign-up confirmation email — new couples.
+
+  Supabase sends this instead of magic_link.html the first time an address is
+  seen. Same link mechanics; only `type` differs (signup vs magiclink). Keep the
+  two templates in sync.
+-->
+<div style="background:#0A0A0A;padding:48px 24px;font-family:Jost,Helvetica,Arial,sans-serif;">
+  <div style="max-width:440px;margin:0 auto;">
+    <p style="font-family:'Cormorant Garamond',Georgia,serif;font-weight:300;font-size:36px;line-height:1.2;color:#FAF9F7;margin:0 0 32px;">
+      Your love story, <em>unbound.</em>
+    </p>
+
+    <p style="font-size:16px;line-height:1.6;color:#FAF9F7;margin:0 0 24px;">
+      Welcome. Here's your sign-in link. It's good for one hour.
+    </p>
+
+    <p style="margin:0 0 32px;">
+      <a
+        href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=signup"
+        style="display:inline-block;background:#FAF9F7;color:#0A0A0A;text-decoration:none;padding:14px 28px;border-radius:6px;font-size:15px;"
+      >
+        Sign in
+      </a>
+    </p>
+
+    <p style="font-size:13px;line-height:1.6;color:#9A9890;margin:0;">
+      If you didn't ask for this, you can ignore it. Nothing will happen.
+    </p>
+  </div>
+</div>
