@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Unbound Albums — brand tokens (see CLAUDE.md)
+   Strictly monochromatic. No accent color, ever. The couple's photos are the
+   only color in the product.
+   --------------------------------------------------------------------------- */
+
+@theme {
+  --color-ink: #0a0a0a;
+  --color-charcoal: #1a1a18;
+  --color-stone: #2c2b28;
+  --color-white: #ffffff;
+  --color-parchment: #faf9f7;
+  --color-linen: #f0ede8;
+  --color-pewter: #9a9890;
+  --color-slate: #6b6960;
+
+  --font-display: var(--font-cormorant), Georgia, serif;
+  --font-sans: var(--font-jost), system-ui, sans-serif;
+
+  /* Border-radius 6px max. */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 6px;
+  --radius-xl: 6px;
+  --radius-2xl: 6px;
+  --radius-3xl: 6px;
+
+  /* Nothing below 13px. */
+  --text-xs: 0.8125rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+}
+
+/* Dark-first: photos pop on dark. */
+body {
+  background: var(--color-ink);
+  color: var(--color-parchment);
+  font-family: var(--font-sans);
+  font-weight: 400;
+}
+
+/* Display type is Cormorant Garamond, 300 weight only, 36px and up. */
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 300;
+}
