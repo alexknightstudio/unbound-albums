@@ -18,7 +18,7 @@ export default async function LoginPage({
         <div className="flex flex-col gap-3 text-center">
           <h1 className="font-display text-4xl text-parchment">Sign in</h1>
           <p className="text-sm text-pewter">
-            No password. We'll email you a link.
+            No password. We&rsquo;ll email you a link.
           </p>
         </div>
 
