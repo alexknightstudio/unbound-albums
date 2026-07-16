@@ -5,6 +5,8 @@ import { ALBUM_SIZE_SPECS, type AlbumSize } from "@/lib/albums/sizes";
 import { type AlbumStatus, statusCopy } from "@/lib/albums/status";
 import { createClient } from "@/lib/supabase/server";
 
+import { PhotoUploader } from "./photo-uploader";
+
 type AlbumRow = {
   id: string;
   title: string;
@@ -36,6 +38,12 @@ export default async function AlbumPage({
   // exist — which is the right answer to give either way.
   if (!album) notFound();
 
+  // head:true fetches the count without dragging 150 rows back for a number.
+  const { count } = await supabase
+    .from("photos")
+    .select("id", { count: "exact", head: true })
+    .eq("album_id", album.id);
+
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-10 px-6 py-16">
       <Link
@@ -52,9 +60,7 @@ export default async function AlbumPage({
         </p>
       </header>
 
-      <div className="rounded-md border border-dashed border-stone px-6 py-14 text-center">
-        <p className="text-sm text-pewter">Photo upload lands here next.</p>
-      </div>
+      <PhotoUploader albumId={album.id} existingCount={count ?? 0} />
     </main>
   );
 }
