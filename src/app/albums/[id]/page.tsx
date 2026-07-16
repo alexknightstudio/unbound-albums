@@ -5,6 +5,7 @@ import { ALBUM_SIZE_SPECS, type AlbumSize } from "@/lib/albums/sizes";
 import { type AlbumStatus, statusCopy } from "@/lib/albums/status";
 import { createClient } from "@/lib/supabase/server";
 
+import { AnalysisRunner } from "./analysis-runner";
 import { PhotoUploader } from "./photo-uploader";
 
 type AlbumRow = {
@@ -60,7 +61,17 @@ export default async function AlbumPage({
         </p>
       </header>
 
-      <PhotoUploader albumId={album.id} existingCount={count ?? 0} />
+      {album.status === "uploading" ? (
+        <PhotoUploader albumId={album.id} existingCount={count ?? 0} />
+      ) : null}
+
+      {album.status === "uploading" || album.status === "analyzing" ? (
+        <AnalysisRunner
+          albumId={album.id}
+          albumStatus={album.status}
+          photoCount={count ?? 0}
+        />
+      ) : null}
     </main>
   );
 }
