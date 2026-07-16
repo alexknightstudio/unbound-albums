@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 
 import { AnalysisRunner } from "./analysis-runner";
 import { PhotoUploader } from "./photo-uploader";
+import { PlanView } from "./plan-view";
 
 type AlbumRow = {
   id: string;
@@ -65,13 +66,17 @@ export default async function AlbumPage({
         <PhotoUploader albumId={album.id} existingCount={count ?? 0} />
       ) : null}
 
-      {album.status === "uploading" || album.status === "analyzing" ? (
+      {album.status === "uploading" ||
+      album.status === "analyzing" ||
+      album.status === "generating" ? (
         <AnalysisRunner
           albumId={album.id}
           albumStatus={album.status}
           photoCount={count ?? 0}
         />
       ) : null}
+
+      {album.status === "ready" ? <PlanView albumId={album.id} /> : null}
     </main>
   );
 }

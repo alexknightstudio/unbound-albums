@@ -4,13 +4,13 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type Progress = { done: boolean; analyzed: number; total: number };
+type Phase = "idle" | "reading" | "designing";
 
 /**
- * Drives the analysis loop: one POST per batch until the server says done.
- *
- * The server does one vision call per request, so a dropped connection or a
- * closed laptop loses at most one batch — reopening the page resumes exactly
- * where it left off, because analyzed photos are never re-analyzed.
+ * Drives the two AI passes: analysis (one POST per 10-photo batch, looped)
+ * then layout generation (one POST). Every step is resumable — analysis is
+ * cached per photo and generation persists nothing until a plan validates,
+ * so a dropped connection or closed laptop just picks up where it stopped.
  */
 export function AnalysisRunner({
   albumId,
@@ -22,15 +22,39 @@ export function AnalysisRunner({
   photoCount: number;
 }) {
   const router = useRouter();
-  const [running, setRunning] = useState(albumStatus === "analyzing");
+  const [phase, setPhase] = useState<Phase>("idle");
   const [progress, setProgress] = useState<Progress | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // Survives re-renders; stops the loop if the component unmounts.
   const cancelled = useRef(false);
+
+  const fail = useCallback((message: string) => {
+    setError(message);
+    setPhase("idle");
+  }, []);
+
+  const runGenerate = useCallback(async () => {
+    setPhase("designing");
+    let response: Response;
+    try {
+      response = await fetch(`/api/albums/${albumId}/generate`, {
+        method: "POST",
+      });
+    } catch {
+      fail("Connection lost. Your progress is saved.");
+      return;
+    }
+    const body = await response.json().catch(() => null);
+    if (!response.ok) {
+      fail(body?.error ?? "Something went wrong. Try again.");
+      return;
+    }
+    // Album is ready — reload the page with the finished plan.
+    router.refresh();
+  }, [albumId, fail, router]);
 
   const runLoop = useCallback(async () => {
     setError(null);
-    setRunning(true);
+    setPhase("reading");
 
     while (!cancelled.current) {
       let response: Response;
@@ -39,74 +63,56 @@ export function AnalysisRunner({
           method: "POST",
         });
       } catch {
-        setError("Connection lost. Your progress is saved.");
-        setRunning(false);
+        fail("Connection lost. Your progress is saved.");
         return;
       }
 
       const body = await response.json().catch(() => null);
 
       if (!response.ok) {
-        setError(body?.error ?? "Something went wrong. Try again.");
-        setRunning(false);
+        fail(body?.error ?? "Something went wrong. Try again.");
         return;
       }
 
       setProgress(body);
 
       if (body.done) {
-        setRunning(false);
-        router.refresh();
+        await runGenerate();
         return;
       }
     }
-  }, [albumId, router]);
+  }, [albumId, fail, runGenerate]);
 
-  // An album already mid-analysis resumes on page load without a click.
+  // An album already mid-flight resumes on page load without a click.
   useEffect(() => {
     cancelled.current = false;
     // Deferred a tick so the resume doesn't set state synchronously inside
     // the effect (React flags that as a cascading-render risk).
-    const timer =
-      albumStatus === "analyzing"
-        ? setTimeout(() => void runLoop(), 0)
-        : undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    if (albumStatus === "analyzing") {
+      timer = setTimeout(() => void runLoop(), 0);
+    } else if (albumStatus === "generating") {
+      timer = setTimeout(() => void runGenerate(), 0);
+    }
     return () => {
       cancelled.current = true;
       if (timer !== undefined) clearTimeout(timer);
     };
-    // Run once on mount — albumStatus changes arrive via router.refresh(),
-    // which remounts with fresh server data.
+    // Run once on mount — status changes arrive via router.refresh(), which
+    // re-renders with fresh server data.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (photoCount === 0) return null;
 
-  const finished = progress?.done === true;
-
-  if (finished) {
-    return (
-      <div className="flex flex-col gap-2 rounded-md border border-stone px-6 py-8 text-center">
-        <p className="font-display text-3xl text-parchment">
-          Every photo, read.
-        </p>
-        <p className="text-sm text-pewter">
-          {progress.total} photos analyzed. Album design is next.
-        </p>
-      </div>
-    );
-  }
-
-  if (running) {
+  if (phase === "reading") {
     return (
       <div className="flex flex-col gap-4 rounded-md border border-stone px-6 py-8">
         <p className="font-display text-3xl text-parchment">
           Reading your photos.
         </p>
         <p className="text-sm text-pewter" aria-live="polite">
-          {progress
-            ? `${progress.analyzed} of ${progress.total}`
-            : "Starting."}
+          {progress ? `${progress.analyzed} of ${progress.total}` : "Starting."}
         </p>
         <div className="h-px w-full overflow-hidden bg-stone">
           <div
@@ -118,6 +124,19 @@ export function AnalysisRunner({
             }}
           />
         </div>
+      </div>
+    );
+  }
+
+  if (phase === "designing") {
+    return (
+      <div className="flex flex-col gap-2 rounded-md border border-stone px-6 py-8">
+        <p className="font-display text-3xl text-parchment">
+          Designing your album.
+        </p>
+        <p className="text-sm text-pewter">
+          Every photo read. Now the pages take shape.
+        </p>
       </div>
     );
   }
