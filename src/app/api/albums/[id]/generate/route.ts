@@ -152,9 +152,11 @@ export async function POST(
     }
 
     try {
-      const response = await anthropic.messages.create({
+      // Streamed, not because we show tokens, but because a whole-album
+      // design can think for minutes and a plain request times out first.
+      const stream = anthropic.messages.stream({
         model: LAYOUT_MODEL,
-        max_tokens: 16000,
+        max_tokens: 32000,
         thinking: { type: "adaptive" },
         system: LAYOUT_SYSTEM_PROMPT,
         output_config: {
@@ -162,6 +164,7 @@ export async function POST(
         },
         messages,
       });
+      const response = await stream.finalMessage();
 
       const textBlock = response.content.find((b) => b.type === "text");
       if (!textBlock || textBlock.type !== "text") {

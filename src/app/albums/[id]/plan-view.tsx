@@ -66,8 +66,8 @@ export async function PlanView({ albumId }: { albumId: string }) {
       <header className="flex flex-col gap-1">
         <h2 className="font-display text-3xl text-parchment">Your album.</h2>
         <p className="text-sm text-pewter">
-          {spreads.length} spreads. The full editor arrives soon — this is the
-          designer&apos;s plan.
+          {`${spreads.length} spreads.`} The full editor arrives soon — this
+          is the designer&apos;s plan.
         </p>
       </header>
 

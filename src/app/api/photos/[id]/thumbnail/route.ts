@@ -98,12 +98,16 @@ export async function POST(
   const thumbPath = `${photo.album_id}/${photo.id}.jpg`;
 
   // Couples can read the thumbs bucket but not write it, so this needs admin.
+  // The Blob wrapper is load-bearing: a raw Node Buffer gets coerced to a
+  // UTF-8 string somewhere between supabase-js and Next's patched fetch,
+  // which replaces every byte >= 0x80 and destroys the JPEG. A Blob survives.
   const { error: uploadError } = await admin.storage
     .from("thumbs")
-    .upload(thumbPath, thumbnail.data, {
-      contentType: "image/jpeg",
-      upsert: true,
-    });
+    .upload(
+      thumbPath,
+      new Blob([new Uint8Array(thumbnail.data)], { type: "image/jpeg" }),
+      { contentType: "image/jpeg", upsert: true },
+    );
 
   if (uploadError) {
     return NextResponse.json(
