@@ -30,57 +30,46 @@ export const UPLOAD_MAX_RETRIES = 3;
 export const MAX_FILE_BYTES = 75 * 1024 * 1024;
 
 /**
- * Accepted types.
- *
- * HEIC matters: it's what iPhones shoot by default. Note that iOS Safari often
- * transcodes HEIC to JPEG when a photo is picked through a file input, so many
- * "iPhone uploads" arrive as image/jpeg — but not all, and not on every path,
- * so we must accept the real thing too.
- *
- * Some browsers report an empty MIME type for .heic. Extension is checked as a
- * fallback for exactly that reason.
+ * Accepted types. Deliberately excludes HEIC — see FILE_INPUT_ACCEPT below.
  */
 export const ACCEPTED_MIME_TYPES = [
   "image/jpeg",
   "image/png",
   "image/webp",
+] as const;
+
+export const ACCEPTED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp"] as const;
+
+/** Recognised so we can explain the problem instead of saying "not a photo". */
+const HEIC_MIME_TYPES = [
   "image/heic",
   "image/heif",
   "image/heic-sequence",
   "image/heif-sequence",
 ] as const;
 
-export const ACCEPTED_EXTENSIONS = [
-  ".jpg",
-  ".jpeg",
-  ".png",
-  ".webp",
-  ".heic",
-  ".heif",
-] as const;
+const HEIC_EXTENSIONS = [".heic", ".heif"] as const;
 
 /**
- * The file input's accept attribute. Deliberately just "image/*".
+ * The file input's accept attribute — and it is load-bearing, not cosmetic.
  *
- * DO NOT list image/heic here, however sensible that looks. Since WebKit
- * 0f7604 (2024), iOS Safari transcodes photo-library picks only when accept
- * *explicitly restricts* the type set — and naming HEIC flips it the wrong way:
- * Safari then re-encodes the couple's JPEGs and PNGs INTO HEIC, renaming the
- * files and changing their MIME types on the way in. WordPress 6.7 shipped
- * accept="image/heic" and broke exactly this.
+ * Since WebKit 0f7604 (2024), iOS Safari transcodes photo-library picks to JPEG
+ * ONLY when accept explicitly restricts the type set. Listing the types below is
+ * what makes an iPhone hand us JPEG instead of HEIC. Widening this to "image/*"
+ * would silently start delivering raw HEIC, which nothing downstream can decode:
+ * not sharp on Vercel (prebuilt binaries omit libheif over HEVC licensing), not
+ * Supabase Edge Functions (2s CPU limit), and not Claude's vision API.
  *
- * With "image/*", iOS hands over the untouched HEIC original — which is also the
- * better print master, since the transcoded alternative is a re-encode.
+ * Never add image/heic here. That inverts the behaviour again and makes Safari
+ * re-encode the couple's JPEGs and PNGs INTO HEIC on the way in.
  *
- * checkFile() still validates what actually arrives; this attribute only steers
- * the picker.
+ * The tradeoff, chosen deliberately: we store Apple's re-encode rather than the
+ * camera original. See DECISIONS.md. Revisit if we ever move to Supabase Pro,
+ * whose Storage transformations decode HEIC.
  */
-export const FILE_INPUT_ACCEPT = "image/*";
+export const FILE_INPUT_ACCEPT = ACCEPTED_MIME_TYPES.join(",");
 
-export type RejectionReason =
-  | "too-large"
-  | "wrong-type"
-  | "empty";
+export type RejectionReason = "too-large" | "wrong-type" | "heic" | "empty";
 
 export type FileCheck =
   | { ok: true }
@@ -89,6 +78,18 @@ export type FileCheck =
 function hasAcceptedExtension(name: string): boolean {
   const lower = name.toLowerCase();
   return ACCEPTED_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
+/**
+ * HEIC still reaches us despite the accept attribute: drag-and-drop ignores
+ * accept entirely, and iOS's Files picker hands bytes over as-is.
+ */
+function isHeic(file: { name: string; type: string }): boolean {
+  const lower = file.name.toLowerCase();
+  return (
+    (HEIC_MIME_TYPES as readonly string[]).includes(file.type.toLowerCase()) ||
+    HEIC_EXTENSIONS.some((ext) => lower.endsWith(ext))
+  );
 }
 
 /**
@@ -116,6 +117,17 @@ export function checkFile(file: {
       message: `${file.name} is too big. Photos need to be under ${Math.floor(
         MAX_FILE_BYTES / (1024 * 1024),
       )}MB.`,
+    };
+  }
+
+  // Checked before the general type check so an iPhone photo gets an answer it
+  // can act on rather than "isn't a photo we can use" — which, for a photo, is
+  // both wrong-sounding and useless.
+  if (isHeic(file)) {
+    return {
+      ok: false,
+      reason: "heic",
+      message: `${file.name} is an iPhone HEIC file. Pick it from your photo library instead of Files and your phone will convert it for us.`,
     };
   }
 

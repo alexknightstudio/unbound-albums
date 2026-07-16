@@ -187,10 +187,12 @@ export function PhotoUploader({ albumId, existingCount }: Props) {
         <div className="flex flex-col gap-4">
           <div className="flex items-baseline justify-between">
             <span className="text-sm text-pewter">
+              {/* Counts finished, not "the one we're on" — several upload at once,
+                  so there is no single current photo to name. */}
               {running
-                ? `Uploading ${done + 1} of ${total}.`
+                ? `${done} of ${total} uploaded.`
                 : failed > 0
-                  ? `${done} uploaded. ${failed} didn't make it.`
+                  ? `${done} uploaded. ${failed} didn${"’"}t make it.`
                   : `${done} uploaded.`}
             </span>
             <span className="text-xs text-slate">{overallProgress}%</span>

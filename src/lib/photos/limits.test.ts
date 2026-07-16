@@ -4,6 +4,7 @@ import {
   ACCEPTED_EXTENSIONS,
   checkFile,
   checkSelection,
+  FILE_INPUT_ACCEPT,
   MAX_FILE_BYTES,
   MAX_PHOTO_COUNT,
   TARGET_PHOTO_COUNT,
@@ -34,26 +35,11 @@ describe("checkFile — types", () => {
     expect(checkFile(file("a.jpeg", "image/jpeg")).ok).toBe(true);
     expect(checkFile(file("a.png", "image/png")).ok).toBe(true);
     expect(checkFile(file("a.webp", "image/webp")).ok).toBe(true);
-    expect(checkFile(file("IMG_4821.HEIC", "image/heic")).ok).toBe(true);
-    expect(checkFile(file("a.heif", "image/heif")).ok).toBe(true);
-  });
-
-  it("accepts HEIC when the browser reports no MIME type at all", () => {
-    // Real behaviour on several browsers — rejecting this would refuse valid
-    // iPhone photos.
-    expect(checkFile(file("IMG_4821.HEIC", "")).ok).toBe(true);
-    expect(checkFile(file("IMG_4821.heic", "")).ok).toBe(true);
-  });
-
-  it("accepts HEIC when the browser reports a wrong MIME type", () => {
-    expect(checkFile(file("IMG_4821.HEIC", "application/octet-stream")).ok).toBe(
-      true,
-    );
   });
 
   it("is case-insensitive about extensions", () => {
     expect(checkFile(file("PHOTO.JPG", "")).ok).toBe(true);
-    expect(checkFile(file("PHOTO.HeIc", "")).ok).toBe(true);
+    expect(checkFile(file("PHOTO.JPEG", "")).ok).toBe(true);
   });
 
   it("refuses things that aren't photos", () => {
@@ -67,6 +53,65 @@ describe("checkFile — types", () => {
 
   it("does not accept a video that merely ends in a photo extension mid-name", () => {
     expect(checkFile(file("my.jpg.mov", "video/quicktime")).ok).toBe(false);
+  });
+});
+
+describe("checkFile — HEIC", () => {
+  // We restrict the file input so iOS transcodes to JPEG for us. HEIC still
+  // arrives via drag-and-drop (which ignores accept) and iOS's Files picker,
+  // so it must be caught and explained rather than decoded.
+  it("refuses HEIC by MIME type", () => {
+    const result = checkFile(file("IMG_4821.HEIC", "image/heic"));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("heic");
+  });
+
+  it("refuses HEIC by extension when the browser reports no MIME type", () => {
+    const result = checkFile(file("IMG_4821.HEIC", ""));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("heic");
+  });
+
+  it("refuses HEIC when the browser reports a junk MIME type", () => {
+    const result = checkFile(file("IMG_4821.heic", "application/octet-stream"));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("heic");
+  });
+
+  it("catches HEIF and the sequence variants too", () => {
+    expect(checkFile(file("a.heif", "image/heif")).ok).toBe(false);
+    expect(checkFile(file("a.x", "image/heic-sequence")).ok).toBe(false);
+    expect(checkFile(file("a.x", "image/heif-sequence")).ok).toBe(false);
+  });
+
+  it("is case-insensitive", () => {
+    expect(checkFile(file("PHOTO.HeIc", "")).ok).toBe(false);
+    expect(checkFile(file("photo.HEIF", "")).ok).toBe(false);
+  });
+
+  it("tells the couple what to do, rather than calling their photo invalid", () => {
+    const result = checkFile(file("IMG_4821.HEIC", "image/heic"));
+    if (!result.ok) {
+      expect(result.message).toContain("photo library");
+      expect(result.message).not.toContain("!");
+      // "isn't a photo we can use" is both wrong-sounding and useless here.
+      expect(result.message).not.toContain("isn't a photo");
+    }
+  });
+});
+
+describe("FILE_INPUT_ACCEPT", () => {
+  // This attribute is what makes iOS Safari transcode HEIC to JPEG. If someone
+  // widens it to image/* or adds HEIC, iPhone uploads break in opposite ways —
+  // raw HEIC we can't decode, or JPEGs re-encoded INTO HEIC. Both are silent.
+  it("never mentions HEIC", () => {
+    expect(FILE_INPUT_ACCEPT.toLowerCase()).not.toContain("heic");
+    expect(FILE_INPUT_ACCEPT.toLowerCase()).not.toContain("heif");
+  });
+
+  it("explicitly restricts the type set rather than using a wildcard", () => {
+    expect(FILE_INPUT_ACCEPT).not.toContain("*");
+    expect(FILE_INPUT_ACCEPT).toContain("image/jpeg");
   });
 });
 
@@ -87,8 +132,10 @@ describe("checkFile — size", () => {
     expect(checkFile(file("a.jpg", "image/jpeg", MAX_FILE_BYTES)).ok).toBe(true);
   });
 
-  it("comfortably accepts a real iPhone HEIC and a full-res pro JPEG", () => {
-    expect(checkFile(file("IMG_4821.HEIC", "image/heic", 3_200_000)).ok).toBe(
+  it("comfortably accepts the real files couples upload", () => {
+    // What an iPhone hands us once Safari has transcoded, and a full-res
+    // export from a photographer's gallery.
+    expect(checkFile(file("IMG_4821.jpg", "image/jpeg", 3_200_000)).ok).toBe(
       true,
     );
     expect(checkFile(file("wedding.jpg", "image/jpeg", 12_000_000)).ok).toBe(

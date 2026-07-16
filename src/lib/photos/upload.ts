@@ -196,6 +196,12 @@ export async function runUploads({
 
           if (error) throw new Error(error.message);
 
+          // Not awaited and not fatal. The photo is safely stored; a thumbnail
+          // is a convenience we can regenerate later. Blocking the queue on it
+          // would make a slow thumbnail look like a slow upload, and failing the
+          // upload over it would throw away a photo we already have.
+          void fetch(`/api/photos/${item.id}/thumbnail`, { method: "POST" });
+
           item.status = "done";
           item.progress = 100;
           onItemChange({ ...item });
