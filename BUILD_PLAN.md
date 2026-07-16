@@ -13,7 +13,7 @@ Target: launch-ready in 4–6 weeks. Alex drives Claude Code 10+ hrs/week. Every
 3. Auth: email magic link. Minimal account surface — couples sign up, land on "Create your album."
 4. Album creation: title, size selection (8×8 / 10×10 / 12×12), status machine wired.
 5. **Upload flow (the critical path):** resumable uploads via Supabase TUS, 150-photo target / 200 hard cap, HEIC accepted, 2–3 parallel, per-file progress, retry on failure, orientation read from EXIF. Server-side thumbnail generation (edge function).
-6. ✅ **Milestone test:** Alex uploads 150 real wedding photos from his iPhone on cellular. Zero silent failures.
+6. ✅ **Milestone test:** Alex uploads 150 real wedding photos from his computer on WiFi. Zero silent failures. (Revised 2026-07-16 from "iPhone on cellular" — couples curate ~150 full-res files from a photographer's gallery on a computer, and 150 × ~17MB ≈ 2.5GB is impractical over cellular. The web app is the same on desktop; mobile stays the target for *viewing* and sharing. iOS HEIC→JPEG transcoding on upload was verified working. See DECISIONS.md.)
 
 ---
 
