@@ -13,7 +13,7 @@ import { TEMPLATES_BY_CODE } from "@/lib/engine/templates";
 
 const SHOWCASE = ["M4", "D1", "T4", "H2", "M5"] as const;
 
-function GhostSpread({ code }: { code: string }) {
+export function GhostSpread({ code }: { code: string }) {
   const template = TEMPLATES_BY_CODE.get(code);
   if (!template) return null;
   return (
@@ -55,18 +55,24 @@ export function GhostSpreadShowcase() {
   const active = TEMPLATES_BY_CODE.get(SHOWCASE[index]);
 
   return (
-    <figure className="flex w-full flex-col items-center gap-5">
-      <div className="relative w-full" style={{ aspectRatio: "2 / 1" }}>
-        {SHOWCASE.map((code, i) => (
-          <div
-            key={code}
-            className={`absolute inset-0 transition-opacity duration-700 ${
-              i === index ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            <GhostSpread code={code} />
-          </div>
-        ))}
+    <figure className="flex w-full flex-col items-center gap-6">
+      <div className="w-full">
+        <div className="relative w-full" style={{ aspectRatio: "2 / 1" }}>
+          {SHOWCASE.map((code, i) => (
+            <div
+              key={code}
+              className={`absolute inset-0 transition-opacity duration-700 ${
+                i === index ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              <GhostSpread code={code} />
+            </div>
+          ))}
+        </div>
+        {/* The page block beneath — this is a bound book, not a slide. */}
+        <div aria-hidden className="mx-auto mt-[3px] h-px w-[99%] bg-linen/70" />
+        <div aria-hidden className="mx-auto mt-[3px] h-px w-[97%] bg-linen/40" />
+        <div aria-hidden className="mx-auto mt-[3px] h-px w-[95%] bg-linen/20" />
       </div>
       <figcaption className="text-center">
         <span className="font-display text-xl italic text-parchment">
