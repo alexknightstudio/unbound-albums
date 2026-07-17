@@ -22,7 +22,12 @@ type PhotoRow = {
   id: string;
   orientation: "portrait" | "landscape" | "square" | null;
   set_aside_reason: string | null;
-  analysis: { hero_potential?: number; is_couple_portrait?: boolean } | null;
+  analysis: {
+    hero_potential?: number;
+    is_couple_portrait?: boolean;
+    stage?: string;
+    emotion?: string;
+  } | null;
 };
 
 export default async function EditAlbumPage({
@@ -67,6 +72,8 @@ export default async function EditAlbumPage({
     heroPotential: Number(p.analysis?.hero_potential ?? 0),
     isCouplePortrait: Boolean(p.analysis?.is_couple_portrait),
     setAsideReason: p.set_aside_reason,
+    stage: String(p.analysis?.stage ?? "other"),
+    emotion: String(p.analysis?.emotion ?? "none"),
   }));
 
   // Full-bleed app shell — the editor owns the whole viewport.

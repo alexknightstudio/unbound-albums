@@ -19,9 +19,12 @@ import { assignPhotosToTemplate, cycleTemplate } from "@/lib/engine/editing";
 import {
   TEMPLATES_BY_CODE,
   mirroredRect,
+  slotAcceptsPhoto,
   type SlotAccepts,
   type SlotCrop,
 } from "@/lib/engine/templates";
+
+import type { RegenIntent } from "@/lib/ai/prompts/layout";
 
 import { reorderSpreads, restoreSpreadState } from "./actions";
 import { CoverDesigner } from "./cover-designer";
@@ -41,6 +44,9 @@ export type EditorPhoto = {
   heroPotential: number;
   isCouplePortrait: boolean;
   setAsideReason: string | null;
+  /** Wedding-day stage from the AI analysis ("ceremony", "portraits", ...). */
+  stage: string;
+  emotion: string;
 };
 
 /** Everything that defines one spread's design — the undo/redo unit. */
@@ -112,6 +118,9 @@ export function AlbumEditor({
   const [storyOpen, setStoryOpen] = useState(false);
   const [warningsOpen, setWarningsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** The AI's one-line rationale after a redesign — shown, then cleared. */
+  const [notice, setNotice] = useState<string | null>(null);
+  const [redesignMenuOpen, setRedesignMenuOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [regenBusy, setRegenBusy] = useState(false);
 
@@ -178,6 +187,47 @@ export function AlbumEditor({
     return list;
   }, [spreads]);
 
+  /** Same-moment swaps for the selected slot's photo: unplaced, same stage,
+   * fits the slot, strongest first. */
+  const alternatives: EditorPhoto[] = useMemo(() => {
+    if (selection?.kind !== "slot" || !template) return [];
+    const photoId = spread?.slots[selection.slotId];
+    const slotDef = template.slots.find((s) => s.id === selection.slotId);
+    if (!photoId || !slotDef) return [];
+    const anchor = photosById.get(photoId);
+    if (!anchor) return [];
+    return photos
+      .filter(
+        (p) =>
+          p.id !== photoId &&
+          p.url &&
+          !placedIds.has(p.id) &&
+          p.stage === anchor.stage &&
+          slotAcceptsPhoto(slotDef.accepts, p.orientation),
+      )
+      .sort((a, b) => b.heroPotential - a.heroPotential)
+      .slice(0, 6);
+  }, [selection, template, spread, photos, photosById, placedIds]);
+
+  /** Dominant wedding stage per spread — the story view's chapter dividers. */
+  const spreadStages: string[] = useMemo(
+    () =>
+      spreads.map((s) => {
+        const counts = new Map<string, number>();
+        for (const pid of Object.values(s.slots)) {
+          const stage = photosById.get(pid)?.stage ?? "other";
+          counts.set(stage, (counts.get(stage) ?? 0) + 1);
+        }
+        let best = "other";
+        let bestN = 0;
+        for (const [stage, n] of counts) {
+          if (n > bestN) [best, bestN] = [stage, n];
+        }
+        return best;
+      }),
+    [spreads, photosById],
+  );
+
   const busy = pending || regenBusy;
 
   // A crop session and a selection belong to ONE spread and ONE tab. Any
@@ -205,6 +255,7 @@ export function AlbumEditor({
       if (!target) return;
       const before = snapshotOf(target);
       setError(null);
+      setNotice(null);
       setSpreads((all) =>
         all.map((s) => (s.id === spreadId ? { ...s, ...after } : s)),
       );
@@ -372,8 +423,13 @@ export function AlbumEditor({
     );
   }
 
-  async function redesignSpread() {
+  async function redesignSpread(
+    intent: RegenIntent = "surprise",
+    heroPhotoId?: string,
+  ) {
     setError(null);
+    setNotice(null);
+    setRedesignMenuOpen(false);
     setSelection(null);
     setRegenBusy(true);
     try {
@@ -383,6 +439,8 @@ export function AlbumEditor({
       try {
         response = await fetch(`/api/spreads/${spreadId}/regenerate`, {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ intent, heroPhotoId }),
         });
       } catch {
         setError("Connection lost. Nothing changed.");
@@ -412,6 +470,7 @@ export function AlbumEditor({
         ),
       );
       setRedoStack([]);
+      if (typeof body.note === "string" && body.note) setNotice(body.note);
     } finally {
       setRegenBusy(false);
     }
@@ -903,6 +962,20 @@ export function AlbumEditor({
                       </button>
                       <button
                         type="button"
+                        disabled={busy || regensLeft <= 0}
+                        onClick={() =>
+                          void redesignSpread(
+                            "hero",
+                            spread.slots[selection.slotId],
+                          )
+                        }
+                        title="Rebuild this spread around this photo"
+                        className="rounded-md border border-stone px-3 py-1.5 text-xs text-pewter hover:border-pewter hover:text-parchment disabled:opacity-30"
+                      >
+                        Make it the hero
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => removeFromSlot(selection.slotId)}
                         className="rounded-md border border-stone px-3 py-1.5 text-xs text-pewter hover:border-pewter hover:text-parchment"
                       >
@@ -919,22 +992,61 @@ export function AlbumEditor({
                       >
                         Flip spread
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => void redesignSpread()}
-                        disabled={busy || regensLeft <= 0}
-                        title={
-                          regensLeft > 0
-                            ? `${regensLeft} of 3 redesigns left — undo is free`
-                            : "This spread has been redesigned three times"
-                        }
-                        className="rounded-md border border-stone px-3 py-1.5 text-xs text-pewter transition-colors hover:border-pewter hover:text-parchment disabled:opacity-30"
-                      >
-                        {regenBusy ? "Redesigning…" : `Redesign (${regensLeft} left)`}
-                      </button>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setRedesignMenuOpen((o) => !o)}
+                          disabled={busy || regensLeft <= 0}
+                          title={
+                            regensLeft > 0
+                              ? `${regensLeft} of 3 redesigns left — undo is free`
+                              : "This spread has been redesigned three times"
+                          }
+                          className="rounded-md border border-stone px-3 py-1.5 text-xs text-pewter transition-colors hover:border-pewter hover:text-parchment disabled:opacity-30"
+                        >
+                          {regenBusy
+                            ? "Redesigning…"
+                            : `Redesign (${regensLeft} left) ▾`}
+                        </button>
+                        {redesignMenuOpen ? (
+                          <div className="absolute bottom-full right-0 z-20 mb-1 flex w-52 flex-col overflow-hidden rounded-md border border-stone bg-charcoal">
+                            {(
+                              [
+                                ["surprise", "Surprise me"],
+                                ["fewer", "Fewer photos, bigger"],
+                                ["add", "Add one more moment"],
+                                ["calmer", "Calmer"],
+                              ] as Array<[RegenIntent, string]>
+                            ).map(([intentKey, label]) => {
+                              const disabled =
+                                (intentKey === "fewer" &&
+                                  Object.keys(spread.slots).length < 2) ||
+                                (intentKey === "add" &&
+                                  placedIds.size >= photos.length);
+                              return (
+                                <button
+                                  key={intentKey}
+                                  type="button"
+                                  disabled={disabled}
+                                  onClick={() => void redesignSpread(intentKey)}
+                                  className="px-3 py-2 text-left text-xs text-pewter transition-colors hover:bg-stone hover:text-parchment disabled:opacity-30"
+                                >
+                                  {label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                   )}
                 </div>
+
+                {notice ? (
+                  <p className="px-4 pb-3 font-display text-sm italic text-pewter">
+                    “{notice}”
+                  </p>
+                ) : null}
               </section>
 
               {/* Photo tray */}
@@ -942,6 +1054,7 @@ export function AlbumEditor({
                 <PhotoTray
                   photos={photos}
                   placedIds={placedIds}
+                  alternatives={alternatives}
                   selectedSlotAccepts={selectedSlotAccepts}
                   selectedTrayPhotoId={
                     selection?.kind === "tray" ? selection.photoId : null
@@ -970,6 +1083,7 @@ export function AlbumEditor({
         {storyOpen ? (
           <StoryView
             spreads={spreads}
+            spreadStages={spreadStages}
             photoUrlMap={photoUrlMap}
             sizeSpec={sizeSpec}
             busy={busy}

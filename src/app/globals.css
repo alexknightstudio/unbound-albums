@@ -55,3 +55,31 @@ body {
     opacity: 1;
   }
 }
+
+/* ---- Accessibility polish (ui-ux-pro-max guided, brand rules override) ---- */
+
+/* A visible focus ring on the ink field — parchment, never a color. */
+:focus-visible {
+  outline: 2px solid var(--color-parchment, #faf9f7);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Text selection stays monochrome. */
+::selection {
+  background: #faf9f7;
+  color: #0a0a0a;
+}
+
+/* Respect the OS reduced-motion setting: content still moves instantly,
+   nothing animates. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

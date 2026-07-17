@@ -110,18 +110,51 @@ export const SPREAD_REGEN_SYSTEM_PROMPT = `${LAYOUT_SYSTEM_PROMPT}
 
 ## This task
 
-You are redesigning ONE spread. You receive the photos currently on it (with their metadata) and the template it uses today. Choose a template with EXACTLY as many slots as there are photos, and assign every photo to a slot — nothing added, nothing set aside, no empty slots. The couple asked for something different: do not return the same template unless no other template fits these photos.`;
+You are redesigning ONE spread. You receive the photos currently on it (with their metadata), the template it uses today, and sometimes an INTENT from the couple plus a small pool of candidate photos from the same part of the day.
+
+Rules:
+- Choose a template with EXACTLY as many slots as the photos you place. No empty slots.
+- With no intent: keep exactly the current photos and find a visibly different treatment — do not return the same template unless nothing else fits.
+- Intent "hero": the named photo MUST land in an emphasis slot of the chosen template. Keep the other photos unless dropping one clearly improves the page.
+- Intent "fewer": place a SUBSET of the current photos (at least one, fewer than now) — bigger, calmer treatment for the strongest of them. Dropped photos simply return to the couple's tray.
+- Intent "add": include EXACTLY ONE photo from the candidate pool alongside the current photos. Pick the candidate that deepens this moment, not just the highest score.
+- Intent "calmer": prefer whitespace-generous templates (D5, H3, H2, DT2) and, if it helps, a subset of photos.
+- Every photo you place must come from the current photos or (for "add") the candidate pool. Copy ids exactly.
+- Your one-line note is shown to the couple: warm, concrete, no jargon — say what you led with and why ("Led with the veil portrait — the quietest moment of the morning").`;
+
+export type RegenIntent = "surprise" | "hero" | "fewer" | "add" | "calmer";
 
 export function spreadRegenUserMessage(
   photos: readonly LayoutPhoto[],
   currentTemplate: string,
+  options?: {
+    intent?: RegenIntent;
+    heroPhotoId?: string;
+    candidates?: readonly LayoutPhoto[];
+  },
 ): string {
-  return [
+  const parts = [
     `Redesign this spread. Current template: ${currentTemplate}.`,
-    ``,
-    `Photos on the spread:`,
-    JSON.stringify(photos, null, 1),
-  ].join("\n");
+  ];
+  const intent = options?.intent ?? "surprise";
+  if (intent === "hero" && options?.heroPhotoId) {
+    parts.push(`INTENT hero: make photo ${options.heroPhotoId} the hero.`);
+  } else if (intent === "fewer") {
+    parts.push(`INTENT fewer: fewer photos, bigger.`);
+  } else if (intent === "add" && options?.candidates?.length) {
+    parts.push(`INTENT add: add exactly one photo from the candidate pool.`);
+  } else if (intent === "calmer") {
+    parts.push(`INTENT calmer: quieter, more whitespace.`);
+  }
+  parts.push(``, `Photos on the spread:`, JSON.stringify(photos, null, 1));
+  if (intent === "add" && options?.candidates?.length) {
+    parts.push(
+      ``,
+      `Candidate pool (same part of the day, currently unplaced):`,
+      JSON.stringify(options.candidates, null, 1),
+    );
+  }
+  return parts.join("\n");
 }
 
 export function spreadRegenOutputSchema() {

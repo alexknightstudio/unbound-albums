@@ -115,7 +115,7 @@ export function AlbumViewer({
           onClick={() => scrollTo(index - 1)}
           disabled={index === 0}
           aria-label="Previous spread"
-          className="rounded-md border border-stone px-4 py-2 text-sm text-pewter transition-colors hover:border-pewter hover:text-parchment disabled:opacity-30"
+          className="min-h-11 min-w-11 rounded-md border border-stone px-4 py-2 text-sm text-pewter transition-colors hover:border-pewter hover:text-parchment disabled:opacity-30"
         >
           ←
         </button>
@@ -127,7 +127,7 @@ export function AlbumViewer({
           onClick={() => scrollTo(index + 1)}
           disabled={index === spreads.length - 1}
           aria-label="Next spread"
-          className="rounded-md border border-stone px-4 py-2 text-sm text-pewter transition-colors hover:border-pewter hover:text-parchment disabled:opacity-30"
+          className="min-h-11 min-w-11 rounded-md border border-stone px-4 py-2 text-sm text-pewter transition-colors hover:border-pewter hover:text-parchment disabled:opacity-30"
         >
           →
         </button>

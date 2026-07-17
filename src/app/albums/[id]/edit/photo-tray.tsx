@@ -17,24 +17,47 @@ import type { EditorPhoto } from "./album-editor";
 
 type TrayFilter = "all" | "unused" | "fits";
 
+const STAGE_LABELS: Record<string, string> = {
+  preparation: "Getting ready",
+  ceremony: "The ceremony",
+  portraits: "The two of you",
+  family_and_friends: "Family & friends",
+  details: "The details",
+  reception: "The reception",
+  party: "The dance floor",
+  other: "Moments",
+};
+
+export function stageLabel(stage: string): string {
+  return STAGE_LABELS[stage] ?? "Moments";
+}
+
 export function PhotoTray({
   photos,
   placedIds,
+  alternatives,
   selectedSlotAccepts,
   selectedTrayPhotoId,
   onSelect,
 }: {
   photos: EditorPhoto[];
   placedIds: ReadonlySet<string>;
+  /** Same-moment swaps for the selected slot, strongest first. */
+  alternatives: EditorPhoto[];
   /** The accepts constraint of the selected slot, when one is selected. */
   selectedSlotAccepts: SlotAccepts | null;
   selectedTrayPhotoId: string | null;
   onSelect: (photoId: string) => void;
 }) {
   const [filter, setFilter] = useState<TrayFilter>("all");
+  const [stageFilter, setStageFilter] = useState<string>("all");
   const [sort, setSort] = useState<"hero" | "upload">("hero");
 
   const usedCount = photos.filter((p) => placedIds.has(p.id)).length;
+  const stages = useMemo(
+    () => [...new Set(photos.map((p) => p.stage))],
+    [photos],
+  );
 
   const visible = useMemo(() => {
     let list = photos.filter((p) => p.url);
@@ -44,11 +67,14 @@ export function PhotoTray({
         slotAcceptsPhoto(selectedSlotAccepts, p.orientation),
       );
     }
+    if (stageFilter !== "all") {
+      list = list.filter((p) => p.stage === stageFilter);
+    }
     if (sort === "hero") {
       list = [...list].sort((a, b) => b.heroPotential - a.heroPotential);
     }
     return list;
-  }, [photos, placedIds, filter, selectedSlotAccepts, sort]);
+  }, [photos, placedIds, filter, stageFilter, selectedSlotAccepts, sort]);
 
   const chip = (value: TrayFilter, label: string, show = true) =>
     show ? (
@@ -79,6 +105,21 @@ export function PhotoTray({
         {chip("all", "All")}
         {chip("unused", "Unused")}
         {chip("fits", "Fits this slot", selectedSlotAccepts !== null)}
+        {stages.length > 1 ? (
+          <select
+            value={stageFilter}
+            onChange={(e) => setStageFilter(e.target.value)}
+            aria-label="Filter by part of the day"
+            className="rounded-full border border-stone bg-charcoal px-2 py-1 text-[11px] text-pewter focus:border-pewter focus:outline-none"
+          >
+            <option value="all">Whole day</option>
+            {stages.map((stage) => (
+              <option key={stage} value={stage}>
+                {stageLabel(stage)}
+              </option>
+            ))}
+          </select>
+        ) : null}
         <button
           type="button"
           onClick={() => setSort(sort === "hero" ? "upload" : "hero")}
@@ -88,6 +129,25 @@ export function PhotoTray({
           {sort === "hero" ? "Our picks first" : "Upload order"}
         </button>
       </div>
+
+      {alternatives.length > 0 ? (
+        <div className="flex flex-col gap-1.5 rounded-md border border-stone p-2">
+          <h4 className="text-[10px] tracking-widest text-slate">
+            FROM THE SAME MOMENT — TAP TO SWAP IN
+          </h4>
+          <div className="flex gap-1.5 overflow-x-auto">
+            {alternatives.map((photo) => (
+              <TrayPhoto
+                key={photo.id}
+                photo={photo}
+                used={false}
+                selected={false}
+                onSelect={() => onSelect(photo.id)}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid flex-1 auto-rows-min grid-cols-3 gap-1.5 overflow-y-auto pr-1 max-lg:flex max-lg:overflow-x-auto max-lg:pb-1">
         {visible.map((photo) => (

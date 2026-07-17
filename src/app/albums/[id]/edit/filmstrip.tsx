@@ -25,6 +25,8 @@ import { CSS } from "@dnd-kit/utilities";
 
 import { SpreadRenderer } from "@/components/spreads/spread-renderer";
 
+import { stageLabel } from "./photo-tray";
+
 import type { ViewerSpread } from "@/components/album/album-viewer";
 import type { AlbumSizeSpec } from "@/lib/albums/sizes";
 import type { SpreadPhoto } from "@/components/spreads/spread-renderer";
@@ -78,6 +80,7 @@ export function Filmstrip({
 
 export function StoryView({
   spreads,
+  spreadStages,
   photoUrlMap,
   sizeSpec,
   busy,
@@ -86,6 +89,8 @@ export function StoryView({
   onClose,
 }: {
   spreads: ViewerSpread[];
+  /** Dominant wedding stage per spread — becomes the chapter dividers. */
+  spreadStages: string[];
   photoUrlMap: ReadonlyMap<string, SpreadPhoto>;
   sizeSpec: AlbumSizeSpec;
   busy: boolean;
@@ -136,17 +141,27 @@ export function StoryView({
             strategy={rectSortingStrategy}
           >
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {spreads.map((spread, i) => (
-                <StoryCard
-                  key={spread.id}
-                  spread={spread}
-                  index={i}
-                  photoUrlMap={photoUrlMap}
-                  sizeSpec={sizeSpec}
-                  busy={busy}
-                  onOpen={() => onOpenSpread(i)}
-                />
-              ))}
+              {spreads.map((spread, i) => {
+                const stage = spreadStages[i] ?? "other";
+                const isNewChapter = i === 0 || stage !== spreadStages[i - 1];
+                return (
+                  <div key={spread.id} className="contents">
+                    {isNewChapter ? (
+                      <h3 className="col-span-full mt-2 font-display text-xl font-light text-parchment first:mt-0">
+                        {stageLabel(stage)}
+                      </h3>
+                    ) : null}
+                    <StoryCard
+                      spread={spread}
+                      index={i}
+                      photoUrlMap={photoUrlMap}
+                      sizeSpec={sizeSpec}
+                      busy={busy}
+                      onOpen={() => onOpenSpread(i)}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </SortableContext>
         </DndContext>
