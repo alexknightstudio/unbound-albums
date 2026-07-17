@@ -17,8 +17,17 @@ const jost = Jost({
 });
 
 export const metadata: Metadata = {
-  title: "Unbound Albums",
-  description: "Your love story, unbound.",
+  title: {
+    default: "Unbound Albums — Your love story, unbound.",
+    template: "%s · Unbound Albums",
+  },
+  description:
+    "Your favorite wedding photos, designed into a printed album. Upload around 150. We'll do the rest.",
+  metadataBase: new URL("https://unboundalbums.com"),
+  openGraph: {
+    siteName: "Unbound Albums",
+    type: "website",
+  },
 };
 
 export default function RootLayout({

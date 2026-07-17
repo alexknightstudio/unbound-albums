@@ -5,6 +5,54 @@ import { loadAlbumPresentation } from "@/lib/albums/presentation";
 import { DEFAULT_ALBUM_SIZE, isAlbumSize } from "@/lib/albums/sizes";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+import type { Metadata } from "next";
+
+/**
+ * The link preview IS the invitation: when this URL lands in iMessage or
+ * WhatsApp, the couple's names and cover photo should appear. And because
+ * the slug is a private capability, search engines are told to stay out.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const admin = createAdminClient();
+  const { data: album } = await admin
+    .from("albums")
+    .select("title, status")
+    .eq("share_slug", slug)
+    .maybeSingle<{ title: string; status: string }>();
+
+  const shareable =
+    album &&
+    (album.status === "ready" ||
+      album.status === "ordered" ||
+      album.status === "shipped");
+  if (!shareable) {
+    return { robots: { index: false, follow: false } };
+  }
+
+  const description = "An album to keep. Made with Unbound.";
+  return {
+    title: album.title,
+    description,
+    robots: { index: false, follow: false },
+    openGraph: {
+      title: `${album.title} — an album to keep`,
+      description,
+      images: [{ url: `/a/${slug}/cover-image` }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${album.title} — an album to keep`,
+      description,
+      images: [`/a/${slug}/cover-image`],
+    },
+  };
+}
+
 type SharedAlbum = {
   id: string;
   title: string;
