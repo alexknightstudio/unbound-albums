@@ -98,6 +98,15 @@ export default async function AlbumPage({
             sizeSpec={presentation.sizeSpec}
           />
 
+          {album.status === "ready" ? (
+            <Link
+              href={`/albums/${album.id}/edit`}
+              className="self-start rounded-md bg-parchment px-6 py-3 text-sm text-ink transition-opacity hover:opacity-90"
+            >
+              Make it yours
+            </Link>
+          ) : null}
+
           <p className="text-xs text-slate">
             Share it:{" "}
             <Link

@@ -101,6 +101,56 @@ export function layoutUserMessage(
   ].join("\n");
 }
 
+/**
+ * Single-spread regeneration ("Regenerate this spread", max 3 per spread).
+ * Same design principles, one spread's photos, and an explicit instruction
+ * to land somewhere visibly different from the current treatment.
+ */
+export const SPREAD_REGEN_SYSTEM_PROMPT = `${LAYOUT_SYSTEM_PROMPT}
+
+## This task
+
+You are redesigning ONE spread. You receive the photos currently on it (with their metadata) and the template it uses today. Choose a template with EXACTLY as many slots as there are photos, and assign every photo to a slot — nothing added, nothing set aside, no empty slots. The couple asked for something different: do not return the same template unless no other template fits these photos.`;
+
+export function spreadRegenUserMessage(
+  photos: readonly LayoutPhoto[],
+  currentTemplate: string,
+): string {
+  return [
+    `Redesign this spread. Current template: ${currentTemplate}.`,
+    ``,
+    `Photos on the spread:`,
+    JSON.stringify(photos, null, 1),
+  ].join("\n");
+}
+
+export function spreadRegenOutputSchema() {
+  return {
+    type: "object",
+    properties: {
+      template_code: {
+        type: "string",
+        enum: SPREAD_TEMPLATES.map((t) => t.code),
+      },
+      assignments: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            slot_id: { type: "string" },
+            photo_id: { type: "string" },
+          },
+          required: ["slot_id", "photo_id"],
+          additionalProperties: false,
+        },
+      },
+      note: { type: "string" },
+    },
+    required: ["template_code", "assignments", "note"],
+    additionalProperties: false,
+  } as const;
+}
+
 /** Structured-output schema for the plan. */
 export function layoutOutputSchema() {
   return {
