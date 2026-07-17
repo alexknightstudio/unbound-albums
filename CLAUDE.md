@@ -72,3 +72,4 @@ RLS: couples read/write only their own rows. Share links use unguessable slugs, 
 - When a decision isn't covered here or in BUILD_PLAN.md, propose the simplest option and ask — don't build speculatively.
 - Write tests for the layout engine and the pricing/order math. UI tests are optional in v1.
 - Keep a running DECISIONS.md log — one line per decision made during the build.
+- The ui-ux-pro-max skill may be used for UX patterns, spacing, accessibility, and component quality — but the brand rules in this file (colors, typography, voice) always override any style, palette, or font suggestion from the skill.

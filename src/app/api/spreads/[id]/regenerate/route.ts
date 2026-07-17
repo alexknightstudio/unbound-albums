@@ -177,7 +177,7 @@ export async function POST(
     );
   }
 
-  const { error: updateError } = await supabase
+  const { data: updatedRow, error: updateError } = await supabase
     .from("spreads")
     .update({
       template_code: proposal.template_code,
@@ -187,14 +187,20 @@ export async function POST(
       flipped: false,
       regen_count: spread.regen_count + 1,
     })
-    .eq("id", spread.id);
-  if (updateError) {
+    .eq("id", spread.id)
+    // Optimistic concurrency: a concurrent redesign already bumped the
+    // counter, so this write matches zero rows instead of double-spending.
+    .eq("regen_count", spread.regen_count)
+    .select("id")
+    .maybeSingle();
+  if (updateError || !updatedRow) {
     return NextResponse.json({ error: "Could not save." }, { status: 500 });
   }
 
   return NextResponse.json({
     ok: true,
     template_code: proposal.template_code,
+    slots: validation.slots,
     regen_count: spread.regen_count + 1,
   });
 }

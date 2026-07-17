@@ -14,6 +14,7 @@ export type ViewerSpread = {
   slots: Record<string, string>;
   slot_crops: Record<string, SlotCrop>;
   flipped: boolean;
+  regen_count: number;
 };
 
 /**

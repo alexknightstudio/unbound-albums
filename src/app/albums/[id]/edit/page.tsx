@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { loadAlbumPresentation } from "@/lib/albums/presentation";
@@ -70,25 +69,15 @@ export default async function EditAlbumPage({
     setAsideReason: p.set_aside_reason,
   }));
 
+  // Full-bleed app shell — the editor owns the whole viewport.
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-6 py-10">
-      <div className="flex items-baseline justify-between">
-        <Link
-          href={`/albums/${album.id}`}
-          className="text-xs text-slate transition-colors hover:text-pewter"
-        >
-          ← Done editing
-        </Link>
-        <h1 className="font-display text-2xl text-parchment">{album.title}</h1>
-      </div>
-
-      <AlbumEditor
-        albumId={album.id}
-        sizeSpec={presentation.sizeSpec}
-        initialSpreads={presentation.spreads}
-        photos={photos}
-        initialCover={parseCover(album.cover)}
-      />
-    </main>
+    <AlbumEditor
+      albumId={album.id}
+      albumTitle={album.title}
+      sizeSpec={presentation.sizeSpec}
+      initialSpreads={presentation.spreads}
+      photos={photos}
+      initialCover={parseCover(album.cover)}
+    />
   );
 }

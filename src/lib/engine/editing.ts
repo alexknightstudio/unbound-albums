@@ -82,6 +82,24 @@ export function compatibleTemplates(
 }
 
 /**
+ * The next/previous compatible template for arrow-key cycling. Wraps around;
+ * returns null when no other template fits these photos.
+ */
+export function cycleTemplate(
+  currentCode: string,
+  photos: readonly EnginePhoto[],
+  direction: 1 | -1,
+): SpreadTemplate | null {
+  const options = compatibleTemplates(photos);
+  if (options.length === 0) return null;
+  const index = options.findIndex((t) => t.code === currentCode);
+  if (index === -1) return options[0];
+  if (options.length === 1) return null;
+  const next = (index + direction + options.length) % options.length;
+  return options[next];
+}
+
+/**
  * Greedy assignment of photos into a template: emphasis slots first, most
  * constrained slots before "any", first photo that fits wins. Returns
  * { slot_id: photo_id } or null when no full assignment exists.

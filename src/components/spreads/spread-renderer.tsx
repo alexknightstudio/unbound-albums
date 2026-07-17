@@ -65,6 +65,7 @@ export function SpreadRenderer({
         return (
           <div
             key={slot.id}
+            data-slot={slot.id}
             className="absolute overflow-hidden"
             style={{
               left: `${rect.x * 100}%`,
@@ -77,6 +78,8 @@ export function SpreadRenderer({
               <img
                 src={photo.url}
                 alt=""
+                loading="lazy"
+                decoding="async"
                 className="h-full w-full object-cover"
                 style={
                   crop
@@ -95,9 +98,15 @@ export function SpreadRenderer({
       })}
 
       {showFold ? (
+        // The fold as a soft shadow, not a hairline — the physical crease of
+        // a lay-flat book, doubling as print honesty in the preview.
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-px bg-ink/10"
+          className="pointer-events-none absolute inset-y-0 left-1/2 w-10 -translate-x-1/2"
+          style={{
+            background:
+              "linear-gradient(to right, transparent, rgba(10,10,10,0.10) 46%, rgba(10,10,10,0.18) 50%, rgba(10,10,10,0.10) 54%, transparent)",
+          }}
         />
       ) : null}
     </div>

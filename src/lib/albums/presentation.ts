@@ -29,7 +29,7 @@ export async function loadAlbumPresentation(
   const [{ data: spreads }, { data: photos }] = await Promise.all([
     admin
       .from("spreads")
-      .select("id, position, template_code, slots, slot_crops, flipped")
+      .select("id, position, template_code, slots, slot_crops, flipped, regen_count")
       .eq("album_id", albumId)
       .order("position", { ascending: true })
       .returns<ViewerSpread[]>(),

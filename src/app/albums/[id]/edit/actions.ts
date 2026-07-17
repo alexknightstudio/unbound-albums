@@ -1,7 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
 import { COVER_LAYOUT_STYLES, type CoverLayoutStyle } from "@/lib/albums/cover";
 import {
   assignPhotosToTemplate,
@@ -113,7 +111,6 @@ export async function saveSpreadSlots(
     .eq("id", spreadId);
   if (error) return { ok: false, error: "Could not save." };
 
-  revalidatePath(`/albums/${ctx.album.id}/edit`);
   return { ok: true };
 }
 
@@ -144,7 +141,51 @@ export async function saveSlotCrop(
     .eq("id", spreadId);
   if (error) return { ok: false, error: "Could not save." };
 
-  revalidatePath(`/albums/${ctx.album.id}/edit`);
+  return { ok: true };
+}
+
+/**
+ * Restore a full spread snapshot — the undo/redo primitive. Every editor
+ * mutation records the spread's before/after state; undo replays `before`
+ * through the same validation as any other edit.
+ */
+export async function restoreSpreadState(
+  spreadId: string,
+  snapshot: {
+    template_code: string;
+    slots: Record<string, string>;
+    slot_crops: Record<string, SlotCrop>;
+    flipped: boolean;
+  },
+): Promise<EditActionState> {
+  const ctx = await loadEditContext(spreadId);
+  if ("error" in ctx) return { ok: false, error: ctx.error };
+
+  const result = validateSpreadSlots(
+    snapshot.template_code,
+    snapshot.slots,
+    ctx.enginePhotos,
+    ctx.usedElsewhere,
+  );
+  if (!result.ok) return { ok: false, error: result.error };
+
+  const crops: Record<string, SlotCrop> = {};
+  for (const [slotId, raw] of Object.entries(snapshot.slot_crops ?? {})) {
+    const clean = clampCrop(raw);
+    if (clean && result.slots[slotId]) crops[slotId] = clean;
+  }
+
+  const { error } = await ctx.supabase
+    .from("spreads")
+    .update({
+      template_code: snapshot.template_code,
+      slots: result.slots,
+      slot_crops: crops,
+      flipped: Boolean(snapshot.flipped),
+    })
+    .eq("id", spreadId);
+  if (error) return { ok: false, error: "Could not save." };
+
   return { ok: true };
 }
 
@@ -161,7 +202,6 @@ export async function toggleSpreadFlip(
     .eq("id", spreadId);
   if (error) return { ok: false, error: "Could not save." };
 
-  revalidatePath(`/albums/${ctx.album.id}/edit`);
   return { ok: true };
 }
 
@@ -203,7 +243,6 @@ export async function changeSpreadTemplate(
     .eq("id", spreadId);
   if (error) return { ok: false, error: "Could not save." };
 
-  revalidatePath(`/albums/${ctx.album.id}/edit`);
   return { ok: true };
 }
 
@@ -235,32 +274,23 @@ export async function reorderSpreads(
     .returns<Array<{ id: string }>>();
   const existing = new Set((spreads ?? []).map((s) => s.id));
 
+  const uniqueIds = new Set(orderedIds);
   if (
-    orderedIds.length !== existing.size ||
+    uniqueIds.size !== orderedIds.length ||
+    uniqueIds.size !== existing.size ||
     !orderedIds.every((id) => existing.has(id))
   ) {
     return { ok: false, error: "That's not the full album." };
   }
 
-  // Two passes because supabase-js can't hold one transaction across
-  // statements: park every position out of the way, then write the final
-  // order. Positions are momentarily negative, never duplicated.
-  for (const [index, id] of orderedIds.entries()) {
-    const { error } = await supabase
-      .from("spreads")
-      .update({ position: -(index + 1) })
-      .eq("id", id);
-    if (error) return { ok: false, error: "Could not reorder." };
-  }
-  for (const [index, id] of orderedIds.entries()) {
-    const { error } = await supabase
-      .from("spreads")
-      .update({ position: index + 1 })
-      .eq("id", id);
-    if (error) return { ok: false, error: "Could not reorder." };
-  }
+  // One statement server-side (the position constraint is deferrable, so a
+  // single UPDATE may permute freely). RLS still applies — SECURITY INVOKER.
+  const { error } = await supabase.rpc("reorder_spreads", {
+    p_album_id: albumId,
+    p_spread_ids: orderedIds,
+  });
+  if (error) return { ok: false, error: "Could not reorder." };
 
-  revalidatePath(`/albums/${albumId}/edit`);
   return { ok: true };
 }
 
@@ -296,7 +326,7 @@ export async function saveCover(
     return { ok: false, error: "Pick a photo from this album." };
   }
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("albums")
     .update({
       cover: {
@@ -307,10 +337,10 @@ export async function saveCover(
       },
     })
     .eq("id", albumId)
-    .eq("status", "ready");
-  if (error) return { ok: false, error: "Could not save." };
+    .eq("status", "ready")
+    .select("id")
+    .maybeSingle();
+  if (error || !updated) return { ok: false, error: "Could not save." };
 
-  revalidatePath(`/albums/${albumId}/edit`);
-  revalidatePath(`/albums/${albumId}`);
   return { ok: true };
 }
