@@ -46,3 +46,12 @@ body {
   font-family: var(--font-display);
   font-weight: 300;
 }
+
+@keyframes fadein {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

@@ -3,17 +3,38 @@
  *
  * 23 templates: Hero H1–H3, Duo D1–D5, Trio T1–T5, Multi M1–M7, Detail
  * DT1–DT3 — the same set the database check constraint enforces on
- * spreads.template_code. Phase 3 gives each code a React component with real
- * geometry; this file defines what the layout engine is allowed to assume:
- * how many slots, their ids, and which orientations each slot accepts.
+ * spreads.template_code.
  *
- * Pure data. No imports. The engine, the prompts, the UI, and the tests all
- * read from here — one source of truth for the contract.
+ * A template is GEOMETRY DATA, not a component. Each slot carries a rect in
+ * fractions of the full spread canvas (two pages side by side; the center
+ * fold sits at x = 0.5). One renderer component draws every template, and the
+ * print PDF draws through the same path — that identity is the WYSIWYG
+ * guarantee. Photos fill their slot with object-fit: cover.
+ *
+ * Geometry rules (Miller's/Bay specs, docs/album-market-research-2026-07.md):
+ * - Full-bleed rects (0,0,1,1 or a full page) are allowed; the book lies flat.
+ * - Non-full-bleed slots keep clear of the trim edges (≥ ~3% of the canvas,
+ *   ≈ 0.5" on a 10×10) and, except for deliberate panoramas and grids, avoid
+ *   straddling the center fold.
+ * - The layout prompt keeps faces off the fold; geometry keeps small slots
+ *   out of it entirely where the design allows.
+ *
+ * Pure data. The engine, the prompts, the renderer, and the tests all read
+ * from here — one source of truth for the contract.
  */
 
 import type { Orientation } from "@/lib/photos/thumbnails";
 
 export type SlotAccepts = Orientation | "any";
+
+/** Fractions of the spread canvas. x/w are fractions of the full spread
+ * width (two pages); y/h are fractions of the page height. */
+export type SlotRect = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+};
 
 export type TemplateSlot = {
   id: string;
@@ -24,6 +45,7 @@ export type TemplateSlot = {
   /** The visually dominant slot, when the template has one. The engine puts
    * the strongest photo here. */
   emphasis?: boolean;
+  rect: SlotRect;
 };
 
 export type SpreadTemplate = {
@@ -39,20 +61,41 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   {
     code: "H1",
     description:
-      "Full-bleed landscape hero across both pages. The single most impactful treatment — reserve for the strongest wide images.",
-    slots: [{ id: "hero", accepts: "landscape", emphasis: true }],
+      "Full-bleed landscape hero across both pages. The single most impactful treatment — reserve for the strongest wide images. Subject must sit clearly left or right of the center fold.",
+    slots: [
+      {
+        id: "hero",
+        accepts: "landscape",
+        emphasis: true,
+        rect: { x: 0, y: 0, w: 1, h: 1 },
+      },
+    ],
   },
   {
     code: "H2",
     description:
-      "Portrait hero on the right page with generous empty left page. Editorial and quiet.",
-    slots: [{ id: "hero", accepts: "portrait", emphasis: true }],
+      "Portrait hero on the right page with an empty left page. Editorial and quiet.",
+    slots: [
+      {
+        id: "hero",
+        accepts: "portrait",
+        emphasis: true,
+        rect: { x: 0.62, y: 0.1, w: 0.26, h: 0.8 },
+      },
+    ],
   },
   {
     code: "H3",
     description:
-      "One photo centered on the spread with wide margins. Works for any orientation; formal and gallery-like.",
-    slots: [{ id: "hero", accepts: "any", emphasis: true }],
+      "One photo of any orientation floated on the left page with wide margins, right page empty. Formal and gallery-like.",
+    slots: [
+      {
+        id: "hero",
+        accepts: "any",
+        emphasis: true,
+        rect: { x: 0.1, y: 0.15, w: 0.3, h: 0.7 },
+      },
+    ],
   },
 
   // --- Duo: two photos in conversation ---------------------------------
@@ -60,25 +103,52 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
     code: "D1",
     description: "Two portraits, one per page. A classic pairing spread.",
     slots: [
-      { id: "left", accepts: "portrait" },
-      { id: "right", accepts: "portrait" },
+      {
+        id: "left",
+        accepts: "portrait",
+        rect: { x: 0.1, y: 0.1, w: 0.3, h: 0.8 },
+      },
+      {
+        id: "right",
+        accepts: "portrait",
+        rect: { x: 0.6, y: 0.1, w: 0.3, h: 0.8 },
+      },
     ],
   },
   {
     code: "D2",
     description: "Two landscapes, one centered on each page.",
     slots: [
-      { id: "left", accepts: "landscape" },
-      { id: "right", accepts: "landscape" },
+      {
+        id: "left",
+        accepts: "landscape",
+        rect: { x: 0.06, y: 0.22, w: 0.38, h: 0.56 },
+      },
+      {
+        id: "right",
+        accepts: "landscape",
+        rect: { x: 0.56, y: 0.22, w: 0.38, h: 0.56 },
+      },
     ],
   },
   {
     code: "D3",
     description:
-      "Full-bleed landscape on the left page, smaller portrait floated on the right.",
+      "Full-bleed image filling the left page, smaller portrait floated on the right.",
     slots: [
-      { id: "feature", accepts: "landscape", emphasis: true },
-      { id: "companion", accepts: "portrait" },
+      {
+        id: "feature",
+        // Page-shaped: near-square on square books, portrait on 11x14. Any
+        // orientation may fill it; the crop is the treatment.
+        accepts: "any",
+        emphasis: true,
+        rect: { x: 0, y: 0, w: 0.5, h: 1 },
+      },
+      {
+        id: "companion",
+        accepts: "portrait",
+        rect: { x: 0.62, y: 0.2, w: 0.24, h: 0.6 },
+      },
     ],
   },
   {
@@ -86,8 +156,17 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
     description:
       "Large portrait on the left page, landscape centered on the right.",
     slots: [
-      { id: "feature", accepts: "portrait", emphasis: true },
-      { id: "companion", accepts: "landscape" },
+      {
+        id: "feature",
+        accepts: "portrait",
+        emphasis: true,
+        rect: { x: 0.08, y: 0.08, w: 0.32, h: 0.84 },
+      },
+      {
+        id: "companion",
+        accepts: "landscape",
+        rect: { x: 0.55, y: 0.3, w: 0.4, h: 0.4 },
+      },
     ],
   },
   {
@@ -95,8 +174,16 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
     description:
       "Two photos of any orientation, small and centered with generous whitespace. Quietest duo.",
     slots: [
-      { id: "left", accepts: "any" },
-      { id: "right", accepts: "any" },
+      {
+        id: "left",
+        accepts: "any",
+        rect: { x: 0.14, y: 0.3, w: 0.22, h: 0.4 },
+      },
+      {
+        id: "right",
+        accepts: "any",
+        rect: { x: 0.64, y: 0.3, w: 0.22, h: 0.4 },
+      },
     ],
   },
 
@@ -104,11 +191,26 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   {
     code: "T1",
     description:
-      "Landscape feature filling the left page; two photos stacked on the right.",
+      "Image filling the left page; two photos stacked on the right.",
     slots: [
-      { id: "feature", accepts: "landscape", emphasis: true },
-      { id: "stack_top", accepts: "any" },
-      { id: "stack_bottom", accepts: "any" },
+      {
+        id: "feature",
+        // Page-shaped: near-square on square books, portrait on 11x14. Any
+        // orientation may fill it; the crop is the treatment.
+        accepts: "any",
+        emphasis: true,
+        rect: { x: 0, y: 0, w: 0.5, h: 1 },
+      },
+      {
+        id: "stack_top",
+        accepts: "any",
+        rect: { x: 0.58, y: 0.08, w: 0.34, h: 0.4 },
+      },
+      {
+        id: "stack_bottom",
+        accepts: "any",
+        rect: { x: 0.58, y: 0.52, w: 0.34, h: 0.4 },
+      },
     ],
   },
   {
@@ -116,29 +218,67 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
     description:
       "Portrait feature on the left page; two landscapes stacked on the right.",
     slots: [
-      { id: "feature", accepts: "portrait", emphasis: true },
-      { id: "stack_top", accepts: "landscape" },
-      { id: "stack_bottom", accepts: "landscape" },
+      {
+        id: "feature",
+        accepts: "portrait",
+        emphasis: true,
+        rect: { x: 0.1, y: 0.08, w: 0.3, h: 0.84 },
+      },
+      {
+        id: "stack_top",
+        accepts: "landscape",
+        rect: { x: 0.55, y: 0.1, w: 0.4, h: 0.36 },
+      },
+      {
+        id: "stack_bottom",
+        accepts: "landscape",
+        rect: { x: 0.55, y: 0.54, w: 0.4, h: 0.36 },
+      },
     ],
   },
   {
     code: "T3",
     description:
-      "Three portraits in a row across the spread. Rhythmic; great for a sequence.",
+      "Three portraits in a row across the spread. Rhythmic; great for a sequence. The center photo crosses the fold — keep faces out of its middle.",
     slots: [
-      { id: "left", accepts: "portrait" },
-      { id: "center", accepts: "portrait" },
-      { id: "right", accepts: "portrait" },
+      {
+        id: "left",
+        accepts: "portrait",
+        rect: { x: 0.075, y: 0.225, w: 0.25, h: 0.55 },
+      },
+      {
+        id: "center",
+        accepts: "portrait",
+        rect: { x: 0.375, y: 0.225, w: 0.25, h: 0.55 },
+      },
+      {
+        id: "right",
+        accepts: "portrait",
+        rect: { x: 0.675, y: 0.225, w: 0.25, h: 0.55 },
+      },
     ],
   },
   {
     code: "T4",
     description:
-      "Wide landscape across the top of the spread; two photos side by side below.",
+      "Wide panorama across the top of the spread; two photos side by side below.",
     slots: [
-      { id: "feature", accepts: "landscape", emphasis: true },
-      { id: "below_left", accepts: "any" },
-      { id: "below_right", accepts: "any" },
+      {
+        id: "feature",
+        accepts: "landscape",
+        emphasis: true,
+        rect: { x: 0.06, y: 0.07, w: 0.88, h: 0.48 },
+      },
+      {
+        id: "below_left",
+        accepts: "any",
+        rect: { x: 0.14, y: 0.62, w: 0.3, h: 0.3 },
+      },
+      {
+        id: "below_right",
+        accepts: "any",
+        rect: { x: 0.56, y: 0.62, w: 0.3, h: 0.3 },
+      },
     ],
   },
   {
@@ -146,9 +286,22 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
     description:
       "Loose asymmetric arrangement of three photos of any orientation.",
     slots: [
-      { id: "first", accepts: "any", emphasis: true },
-      { id: "second", accepts: "any" },
-      { id: "third", accepts: "any" },
+      {
+        id: "first",
+        accepts: "any",
+        emphasis: true,
+        rect: { x: 0.06, y: 0.1, w: 0.4, h: 0.62 },
+      },
+      {
+        id: "second",
+        accepts: "any",
+        rect: { x: 0.56, y: 0.16, w: 0.26, h: 0.36 },
+      },
+      {
+        id: "third",
+        accepts: "any",
+        rect: { x: 0.6, y: 0.58, w: 0.3, h: 0.32 },
+      },
     ],
   },
 
@@ -157,21 +310,56 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
     code: "M1",
     description: "Four photos in a clean 2×2 grid.",
     slots: [
-      { id: "top_left", accepts: "any" },
-      { id: "top_right", accepts: "any" },
-      { id: "bottom_left", accepts: "any" },
-      { id: "bottom_right", accepts: "any" },
+      {
+        id: "top_left",
+        accepts: "any",
+        rect: { x: 0.055, y: 0.075, w: 0.42, h: 0.4 },
+      },
+      {
+        id: "top_right",
+        accepts: "any",
+        rect: { x: 0.525, y: 0.075, w: 0.42, h: 0.4 },
+      },
+      {
+        id: "bottom_left",
+        accepts: "any",
+        rect: { x: 0.055, y: 0.525, w: 0.42, h: 0.4 },
+      },
+      {
+        id: "bottom_right",
+        accepts: "any",
+        rect: { x: 0.525, y: 0.525, w: 0.42, h: 0.4 },
+      },
     ],
   },
   {
     code: "M2",
     description:
-      "Landscape feature on the left page; three photos arranged on the right.",
+      "Image filling the left page; three photos in a column on the right.",
     slots: [
-      { id: "feature", accepts: "landscape", emphasis: true },
-      { id: "first", accepts: "any" },
-      { id: "second", accepts: "any" },
-      { id: "third", accepts: "any" },
+      {
+        id: "feature",
+        // Page-shaped: near-square on square books, portrait on 11x14. Any
+        // orientation may fill it; the crop is the treatment.
+        accepts: "any",
+        emphasis: true,
+        rect: { x: 0, y: 0, w: 0.5, h: 1 },
+      },
+      {
+        id: "first",
+        accepts: "any",
+        rect: { x: 0.56, y: 0.06, w: 0.36, h: 0.26 },
+      },
+      {
+        id: "second",
+        accepts: "any",
+        rect: { x: 0.56, y: 0.37, w: 0.36, h: 0.26 },
+      },
+      {
+        id: "third",
+        accepts: "any",
+        rect: { x: 0.56, y: 0.68, w: 0.36, h: 0.26 },
+      },
     ],
   },
   {
@@ -179,58 +367,167 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
     description:
       "Portrait feature on the right page; three photos stacked on the left.",
     slots: [
-      { id: "feature", accepts: "portrait", emphasis: true },
-      { id: "first", accepts: "any" },
-      { id: "second", accepts: "any" },
-      { id: "third", accepts: "any" },
+      {
+        id: "feature",
+        accepts: "portrait",
+        emphasis: true,
+        rect: { x: 0.6, y: 0.08, w: 0.3, h: 0.84 },
+      },
+      {
+        id: "first",
+        accepts: "any",
+        rect: { x: 0.08, y: 0.06, w: 0.34, h: 0.26 },
+      },
+      {
+        id: "second",
+        accepts: "any",
+        rect: { x: 0.08, y: 0.37, w: 0.34, h: 0.26 },
+      },
+      {
+        id: "third",
+        accepts: "any",
+        rect: { x: 0.08, y: 0.68, w: 0.34, h: 0.26 },
+      },
     ],
   },
   {
     code: "M4",
     description:
-      "Five photos: one large anchor plus four smaller around it. Reception energy.",
+      "Five photos: one large anchor on the left page plus four smaller on the right. Reception energy.",
     slots: [
-      { id: "anchor", accepts: "any", emphasis: true },
-      { id: "first", accepts: "any" },
-      { id: "second", accepts: "any" },
-      { id: "third", accepts: "any" },
-      { id: "fourth", accepts: "any" },
+      {
+        id: "anchor",
+        accepts: "any",
+        emphasis: true,
+        rect: { x: 0.06, y: 0.1, w: 0.38, h: 0.8 },
+      },
+      {
+        id: "first",
+        accepts: "any",
+        rect: { x: 0.54, y: 0.1, w: 0.2, h: 0.375 },
+      },
+      {
+        id: "second",
+        accepts: "any",
+        rect: { x: 0.76, y: 0.1, w: 0.2, h: 0.375 },
+      },
+      {
+        id: "third",
+        accepts: "any",
+        rect: { x: 0.54, y: 0.525, w: 0.2, h: 0.375 },
+      },
+      {
+        id: "fourth",
+        accepts: "any",
+        rect: { x: 0.76, y: 0.525, w: 0.2, h: 0.375 },
+      },
     ],
   },
   {
     code: "M5",
-    description: "Five photos in a filmstrip row plus one wide above.",
+    description:
+      "Wide panorama on top plus a four-photo filmstrip row below.",
     slots: [
-      { id: "feature", accepts: "landscape", emphasis: true },
-      { id: "strip_1", accepts: "any" },
-      { id: "strip_2", accepts: "any" },
-      { id: "strip_3", accepts: "any" },
-      { id: "strip_4", accepts: "any" },
+      {
+        id: "feature",
+        accepts: "landscape",
+        emphasis: true,
+        rect: { x: 0.06, y: 0.07, w: 0.88, h: 0.5 },
+      },
+      {
+        id: "strip_1",
+        accepts: "any",
+        rect: { x: 0.06, y: 0.64, w: 0.2, h: 0.28 },
+      },
+      {
+        id: "strip_2",
+        accepts: "any",
+        rect: { x: 0.29, y: 0.64, w: 0.2, h: 0.28 },
+      },
+      {
+        id: "strip_3",
+        accepts: "any",
+        rect: { x: 0.52, y: 0.64, w: 0.2, h: 0.28 },
+      },
+      {
+        id: "strip_4",
+        accepts: "any",
+        rect: { x: 0.75, y: 0.64, w: 0.2, h: 0.28 },
+      },
     ],
   },
   {
     code: "M6",
     description: "Six photos in a 3×2 grid. Candid momentum; dance floor.",
     slots: [
-      { id: "grid_1", accepts: "any" },
-      { id: "grid_2", accepts: "any" },
-      { id: "grid_3", accepts: "any" },
-      { id: "grid_4", accepts: "any" },
-      { id: "grid_5", accepts: "any" },
-      { id: "grid_6", accepts: "any" },
+      {
+        id: "grid_1",
+        accepts: "any",
+        rect: { x: 0.055, y: 0.075, w: 0.27, h: 0.4 },
+      },
+      {
+        id: "grid_2",
+        accepts: "any",
+        rect: { x: 0.365, y: 0.075, w: 0.27, h: 0.4 },
+      },
+      {
+        id: "grid_3",
+        accepts: "any",
+        rect: { x: 0.675, y: 0.075, w: 0.27, h: 0.4 },
+      },
+      {
+        id: "grid_4",
+        accepts: "any",
+        rect: { x: 0.055, y: 0.525, w: 0.27, h: 0.4 },
+      },
+      {
+        id: "grid_5",
+        accepts: "any",
+        rect: { x: 0.365, y: 0.525, w: 0.27, h: 0.4 },
+      },
+      {
+        id: "grid_6",
+        accepts: "any",
+        rect: { x: 0.675, y: 0.525, w: 0.27, h: 0.4 },
+      },
     ],
   },
   {
     code: "M7",
     description:
-      "Six photos: one dominant plus five small. The busiest spread — use at most once per album.",
+      "Six photos: one dominant on the left plus five small on the right. The busiest spread — use at most once per album.",
     slots: [
-      { id: "anchor", accepts: "any", emphasis: true },
-      { id: "first", accepts: "any" },
-      { id: "second", accepts: "any" },
-      { id: "third", accepts: "any" },
-      { id: "fourth", accepts: "any" },
-      { id: "fifth", accepts: "any" },
+      {
+        id: "anchor",
+        accepts: "any",
+        emphasis: true,
+        rect: { x: 0.05, y: 0.08, w: 0.42, h: 0.84 },
+      },
+      {
+        id: "first",
+        accepts: "any",
+        rect: { x: 0.53, y: 0.08, w: 0.2, h: 0.4 },
+      },
+      {
+        id: "second",
+        accepts: "any",
+        rect: { x: 0.53, y: 0.52, w: 0.2, h: 0.4 },
+      },
+      {
+        id: "third",
+        accepts: "any",
+        rect: { x: 0.76, y: 0.08, w: 0.19, h: 0.253 },
+      },
+      {
+        id: "fourth",
+        accepts: "any",
+        rect: { x: 0.76, y: 0.373, w: 0.19, h: 0.253 },
+      },
+      {
+        id: "fifth",
+        accepts: "any",
+        rect: { x: 0.76, y: 0.667, w: 0.19, h: 0.253 },
+      },
     ],
   },
 
@@ -238,32 +535,73 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   {
     code: "DT1",
     description:
-      "Three detail shots in a centered row — rings, florals, stationery.",
+      "A trio of details — one on the left page, two on the right. Rings, florals, stationery.",
     slots: [
-      { id: "left", accepts: "any" },
-      { id: "center", accepts: "any" },
-      { id: "right", accepts: "any" },
+      {
+        id: "left",
+        accepts: "any",
+        rect: { x: 0.15, y: 0.3, w: 0.2, h: 0.4 },
+      },
+      {
+        id: "center",
+        accepts: "any",
+        rect: { x: 0.56, y: 0.3, w: 0.18, h: 0.4 },
+      },
+      {
+        id: "right",
+        accepts: "any",
+        rect: { x: 0.78, y: 0.3, w: 0.18, h: 0.4 },
+      },
     ],
   },
   {
     code: "DT2",
     description:
-      "Four detail shots in a 2×2 arrangement with generous whitespace.",
+      "Four detail shots staggered across the spread with generous whitespace.",
     slots: [
-      { id: "top_left", accepts: "any" },
-      { id: "top_right", accepts: "any" },
-      { id: "bottom_left", accepts: "any" },
-      { id: "bottom_right", accepts: "any" },
+      {
+        id: "top_left",
+        accepts: "any",
+        rect: { x: 0.11, y: 0.2, w: 0.15, h: 0.3 },
+      },
+      {
+        id: "top_right",
+        accepts: "any",
+        rect: { x: 0.29, y: 0.2, w: 0.15, h: 0.3 },
+      },
+      {
+        id: "bottom_left",
+        accepts: "any",
+        rect: { x: 0.56, y: 0.5, w: 0.15, h: 0.3 },
+      },
+      {
+        id: "bottom_right",
+        accepts: "any",
+        rect: { x: 0.74, y: 0.5, w: 0.15, h: 0.3 },
+      },
     ],
   },
   {
     code: "DT3",
     description:
-      "One larger detail anchor with two companions. For when one object matters most.",
+      "One larger detail anchor on the left with two staggered companions on the right. For when one object matters most.",
     slots: [
-      { id: "anchor", accepts: "any", emphasis: true },
-      { id: "first", accepts: "any" },
-      { id: "second", accepts: "any" },
+      {
+        id: "anchor",
+        accepts: "any",
+        emphasis: true,
+        rect: { x: 0.1, y: 0.15, w: 0.32, h: 0.64 },
+      },
+      {
+        id: "first",
+        accepts: "any",
+        rect: { x: 0.56, y: 0.22, w: 0.16, h: 0.32 },
+      },
+      {
+        id: "second",
+        accepts: "any",
+        rect: { x: 0.76, y: 0.46, w: 0.16, h: 0.32 },
+      },
     ],
   },
 ] as const;
@@ -288,4 +626,14 @@ export function slotAcceptsPhoto(
   if (accepts === "any") return true;
   if (orientation === "square") return true;
   return accepts === orientation;
+}
+
+/** A rect is full-bleed if it touches all four edges of its page (or the
+ * whole spread). Full-bleed rects are exempt from safe-margin rules. */
+export function isFullBleed(rect: SlotRect): boolean {
+  const fullHeight = rect.y === 0 && rect.h === 1;
+  const wholeSpread = rect.x === 0 && rect.w === 1;
+  const leftPage = rect.x === 0 && rect.x + rect.w === 0.5;
+  const rightPage = rect.x === 0.5 && rect.x + rect.w === 1;
+  return fullHeight && (wholeSpread || leftPage || rightPage);
 }

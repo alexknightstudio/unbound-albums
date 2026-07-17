@@ -6,6 +6,42 @@ import { useCallback, useEffect, useRef, useState } from "react";
 type Progress = { done: boolean; analyzed: number; total: number };
 type Phase = "idle" | "reading" | "designing";
 
+/** The reveal is minutes away. These lines are the anticipation — brand
+ * voice, slow rotation, no spinners. This moment converts. */
+const DESIGNING_LINES = [
+  "Reading the light in every photo.",
+  "Finding the rhythm of your day.",
+  "Choosing the one that carries the page.",
+  "Giving the quiet moments room.",
+  "Placing your story, spread by spread.",
+];
+
+function DesigningReveal() {
+  const [line, setLine] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(
+      () => setLine((current) => (current + 1) % DESIGNING_LINES.length),
+      7000,
+    );
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="flex flex-col gap-4 rounded-md border border-stone px-6 py-12 text-center">
+      <p
+        key={line}
+        className="animate-[fadein_1.2s_ease] font-display text-3xl font-light text-parchment"
+      >
+        {DESIGNING_LINES[line]}
+      </p>
+      <p className="text-xs tracking-widest text-slate">
+        DESIGNING YOUR ALBUM
+      </p>
+    </div>
+  );
+}
+
 /**
  * Drives the two AI passes: analysis (one POST per 10-photo batch, looped)
  * then layout generation (one POST). Every step is resumable — analysis is
@@ -129,16 +165,7 @@ export function AnalysisRunner({
   }
 
   if (phase === "designing") {
-    return (
-      <div className="flex flex-col gap-2 rounded-md border border-stone px-6 py-8">
-        <p className="font-display text-3xl text-parchment">
-          Designing your album.
-        </p>
-        <p className="text-sm text-pewter">
-          Every photo read. Now the pages take shape.
-        </p>
-      </div>
-    );
+    return <DesigningReveal />;
   }
 
   return (
