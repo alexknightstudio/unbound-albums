@@ -73,8 +73,8 @@ export function TemplateRail({
               type="button"
               disabled={disabled || isActive}
               onClick={() => onApply(template.code, assignment)}
-              title={template.description}
-              aria-label={`Layout ${template.code}`}
+              title={`${template.name} — ${template.description}`}
+              aria-label={`Layout ${template.code}: ${template.name}`}
               className={`group relative w-32 shrink-0 overflow-hidden rounded-sm border transition-all lg:w-auto ${
                 isActive
                   ? "border-parchment"
@@ -88,11 +88,11 @@ export function TemplateRail({
                 sizeSpec={sizeSpec}
               />
               <span
-                className={`absolute bottom-1 right-1 rounded-sm px-1 text-[9px] ${
+                className={`absolute inset-x-0 bottom-0 truncate px-1.5 py-0.5 text-left text-[9px] ${
                   isActive ? "bg-parchment text-ink" : "bg-ink/70 text-pewter"
                 }`}
               >
-                {template.code}
+                {template.name}
               </span>
             </button>
           );

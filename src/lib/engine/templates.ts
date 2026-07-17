@@ -50,6 +50,8 @@ export type TemplateSlot = {
 
 export type SpreadTemplate = {
   code: string;
+  /** The name a couple sees — warm, concrete, no codes. */
+  name: string;
   /** One-line description — rendered into the layout prompt so the model
    * knows what it's choosing. */
   description: string;
@@ -60,6 +62,7 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   // --- Hero: one photo carries the whole spread -------------------------
   {
     code: "H1",
+    name: "The full spread",
     description:
       "Full-bleed landscape hero across both pages. The single most impactful treatment — reserve for the strongest wide images. Subject must sit clearly left or right of the center fold.",
     slots: [
@@ -73,6 +76,7 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   },
   {
     code: "H2",
+    name: "The portrait, alone",
     description:
       "Portrait hero on the right page with an empty left page. Editorial and quiet.",
     slots: [
@@ -86,6 +90,7 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   },
   {
     code: "H3",
+    name: "The gallery wall",
     description:
       "One photo of any orientation floated on the left page with wide margins, right page empty. Formal and gallery-like.",
     slots: [
@@ -101,6 +106,7 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   // --- Duo: two photos in conversation ---------------------------------
   {
     code: "D1",
+    name: "Side by side",
     description: "Two portraits, one per page. A classic pairing spread.",
     slots: [
       {
@@ -117,6 +123,7 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   },
   {
     code: "D2",
+    name: "Two views",
     description: "Two landscapes, one centered on each page.",
     slots: [
       {
@@ -133,6 +140,7 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   },
   {
     code: "D3",
+    name: "Full page & companion",
     description:
       "Full-bleed image filling the left page, smaller portrait floated on the right.",
     slots: [
@@ -153,6 +161,7 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   },
   {
     code: "D4",
+    name: "Portrait & landscape",
     description:
       "Large portrait on the left page, landscape centered on the right.",
     slots: [
@@ -171,6 +180,7 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   },
   {
     code: "D5",
+    name: "The quiet pair",
     description:
       "Two photos of any orientation, small and centered with generous whitespace. Quietest duo.",
     slots: [
@@ -190,6 +200,7 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   // --- Trio: three photos, one usually leading -------------------------
   {
     code: "T1",
+    name: "One leads, two follow",
     description:
       "Image filling the left page; two photos stacked on the right.",
     slots: [
@@ -215,6 +226,7 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   },
   {
     code: "T2",
+    name: "Portrait with moments",
     description:
       "Portrait feature on the left page; two landscapes stacked on the right.",
     slots: [
@@ -238,6 +250,7 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   },
   {
     code: "T3",
+    name: "Three in a row",
     description:
       "Three portraits in a row across the spread. Rhythmic; great for a sequence. The center photo crosses the fold — keep faces out of its middle.",
     slots: [
@@ -260,6 +273,7 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   },
   {
     code: "T4",
+    name: "The panorama",
     description:
       "Wide panorama across the top of the spread; two photos side by side below.",
     slots: [
@@ -283,6 +297,7 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   },
   {
     code: "T5",
+    name: "Loosely gathered",
     description:
       "Loose asymmetric arrangement of three photos of any orientation.",
     slots: [
@@ -308,6 +323,7 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   // --- Multi: four to six photos, momentum spreads ----------------------
   {
     code: "M1",
+    name: "Four square",
     description: "Four photos in a clean 2×2 grid.",
     slots: [
       {
@@ -334,6 +350,7 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   },
   {
     code: "M2",
+    name: "Full page & three",
     description:
       "Image filling the left page; three photos in a column on the right.",
     slots: [
@@ -364,6 +381,7 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   },
   {
     code: "M3",
+    name: "Three & a portrait",
     description:
       "Portrait feature on the right page; three photos stacked on the left.",
     slots: [
@@ -392,6 +410,7 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   },
   {
     code: "M4",
+    name: "The anchor",
     description:
       "Five photos: one large anchor on the left page plus four smaller on the right. Reception energy.",
     slots: [
@@ -425,6 +444,7 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   },
   {
     code: "M5",
+    name: "Panorama & filmstrip",
     description:
       "Wide panorama on top plus a four-photo filmstrip row below.",
     slots: [
@@ -458,6 +478,7 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   },
   {
     code: "M6",
+    name: "Six candids",
     description: "Six photos in a 3×2 grid. Candid momentum; dance floor.",
     slots: [
       {
@@ -494,6 +515,7 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   },
   {
     code: "M7",
+    name: "One & five",
     description:
       "Six photos: one dominant on the left plus five small on the right. The busiest spread — use at most once per album.",
     slots: [
@@ -534,6 +556,7 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   // --- Detail: object stories -------------------------------------------
   {
     code: "DT1",
+    name: "A trio of details",
     description:
       "A trio of details — one on the left page, two on the right. Rings, florals, stationery.",
     slots: [
@@ -556,6 +579,7 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   },
   {
     code: "DT2",
+    name: "Four little things",
     description:
       "Four detail shots staggered across the spread with generous whitespace.",
     slots: [
@@ -583,6 +607,7 @@ export const SPREAD_TEMPLATES: readonly SpreadTemplate[] = [
   },
   {
     code: "DT3",
+    name: "The detail story",
     description:
       "One larger detail anchor on the left with two staggered companions on the right. For when one object matters most.",
     slots: [

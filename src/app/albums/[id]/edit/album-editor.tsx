@@ -136,6 +136,22 @@ export function AlbumEditor({
   const canvasRef = useRef<HTMLDivElement | null>(null);
 
   const [draggingPhotoId, setDraggingPhotoId] = useState<string | null>(null);
+  // First-run hint; localStorage read happens after mount (no SSR value).
+  const [coach, setCoach] = useState(false);
+  useEffect(() => {
+    // Deferred a tick: reading localStorage is fine, but setting state
+    // synchronously inside an effect trips the cascading-render lint.
+    const timer = setTimeout(() => {
+      if (!window.localStorage.getItem("unbound-editor-coach-done")) {
+        setCoach(true);
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
+  function dismissCoach() {
+    window.localStorage.setItem("unbound-editor-coach-done", "1");
+    setCoach(false);
+  }
 
   const spread = spreads[Math.min(current, spreads.length - 1)];
   const template = TEMPLATES_BY_CODE.get(spread?.template_code ?? "");
@@ -788,6 +804,23 @@ export function AlbumEditor({
           </div>
         </header>
 
+        {coach ? (
+          <div className="flex items-center justify-between gap-3 border-b border-stone px-4 py-2">
+            <p className="text-xs text-pewter">
+              Tap a photo, then tap where it goes. Layouts on the left use
+              your photos. Everything saves itself — and ⌘Z undoes anything,
+              even a redesign.
+            </p>
+            <button
+              type="button"
+              onClick={dismissCoach}
+              className="shrink-0 text-xs text-slate hover:text-parchment"
+            >
+              Got it
+            </button>
+          </div>
+        ) : null}
+
         {error ? (
           <p
             role="alert"
@@ -918,8 +951,12 @@ export function AlbumEditor({
                     >
                       ←
                     </button>
-                    <span className="text-[11px] tracking-widest text-slate">
-                      SPREAD {current + 1} OF {spreads.length}
+                    <span
+                      className="text-[11px] tracking-widest text-slate"
+                      title={`Spread ${current + 1} of ${spreads.length}`}
+                    >
+                      PAGES {current * 2 + 1}–{current * 2 + 2} OF{" "}
+                      {spreads.length * 2}
                     </span>
                     <button
                       type="button"
@@ -1071,10 +1108,17 @@ export function AlbumEditor({
                 current={current}
                 photoUrlMap={photoUrlMap}
                 sizeSpec={sizeSpec}
+                coverUrl={
+                  initialCover.hero_photo_id
+                    ? (photosById.get(initialCover.hero_photo_id)?.url ?? null)
+                    : null
+                }
+                coverActive={false}
                 onNavigate={(i) => {
                   setSelection(null);
                   setCurrent(i);
                 }}
+                onOpenCover={() => setTab("cover")}
               />
             </footer>
           </>

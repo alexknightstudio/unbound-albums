@@ -24,6 +24,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 import { SpreadRenderer } from "@/components/spreads/spread-renderer";
+import { TEMPLATES_BY_CODE } from "@/lib/engine/templates";
 
 import { stageLabel } from "./photo-tray";
 
@@ -36,19 +37,61 @@ export function Filmstrip({
   current,
   photoUrlMap,
   sizeSpec,
+  coverUrl,
+  coverActive,
   onNavigate,
+  onOpenCover,
 }: {
   spreads: ViewerSpread[];
   current: number;
   photoUrlMap: ReadonlyMap<string, SpreadPhoto>;
   sizeSpec: AlbumSizeSpec;
+  /** The saved cover hero, if chosen — the book starts at its cover. */
+  coverUrl: string | null;
+  coverActive: boolean;
   onNavigate: (index: number) => void;
+  onOpenCover: () => void;
 }) {
   return (
     <div
       className="scrollbar-none flex gap-2 overflow-x-auto px-3 py-2"
       style={{ scrollbarWidth: "none" }}
     >
+      {/* The book begins at its cover — same navigation model as a shelf
+          of real albums. */}
+      <button
+        type="button"
+        onClick={onOpenCover}
+        aria-label="Edit the cover"
+        className={`relative shrink-0 overflow-hidden rounded-sm border transition-colors ${
+          coverActive
+            ? "border-parchment"
+            : "border-stone opacity-60 hover:opacity-100"
+        }`}
+        style={{
+          width: `${(96 * sizeSpec.pageWidthIn) / (sizeSpec.pageWidthIn * 2)}px`,
+        }}
+      >
+        <span
+          className="block w-full bg-charcoal"
+          style={{
+            aspectRatio: `${sizeSpec.pageWidthIn} / ${sizeSpec.pageHeightIn}`,
+          }}
+        >
+          {coverUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={coverUrl}
+              alt=""
+              loading="lazy"
+              className="h-full w-full object-cover"
+            />
+          ) : null}
+        </span>
+        <span className="absolute bottom-0.5 left-1 text-[9px] text-slate">
+          Cover
+        </span>
+      </button>
       {spreads.map((spread, i) => (
         <button
           key={spread.id}
@@ -70,7 +113,7 @@ export function Filmstrip({
             flipped={spread.flipped}
           />
           <span className="absolute bottom-0.5 left-1 text-[9px] text-slate">
-            {i + 1}
+            {i * 2 + 1}–{i * 2 + 2}
           </span>
         </button>
       ))}
@@ -220,7 +263,9 @@ function StoryCard({
       </button>
       <div className="mt-1 flex items-center justify-between">
         <span className="text-[11px] text-slate">
-          Spread {index + 1} · {spread.template_code}
+          Spread {index + 1} ·{" "}
+          {TEMPLATES_BY_CODE.get(spread.template_code)?.name ??
+            spread.template_code}
         </span>
         <button
           type="button"
