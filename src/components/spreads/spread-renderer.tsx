@@ -1,15 +1,21 @@
 /* eslint-disable @next/next/no-img-element */
 /**
  * Draws any spread template at any size. THE render path: the album preview,
- * the share page, and (Phase 5) the 300-DPI print PDF all draw through this
- * component — that identity is the WYSIWYG guarantee from CLAUDE.md.
+ * the share page, the editor, and (Phase 5) the 300-DPI print PDF all draw
+ * through this component — that identity is the WYSIWYG guarantee from
+ * CLAUDE.md.
  *
  * Geometry comes from the template's slot rects (fractions of the spread
- * canvas). Photos fill their slot with object-fit: cover, centered — the
- * classic album crop.
+ * canvas), optionally mirrored when the spread is flipped — the photos
+ * themselves are never mirrored. Photos fill their slot with object-fit:
+ * cover; per-slot crops (object-position percentages) reframe what shows.
  */
 
-import { TEMPLATES_BY_CODE } from "@/lib/engine/templates";
+import {
+  TEMPLATES_BY_CODE,
+  mirroredRect,
+  type SlotCrop,
+} from "@/lib/engine/templates";
 
 import type { AlbumSizeSpec } from "@/lib/albums/sizes";
 
@@ -23,6 +29,8 @@ export function SpreadRenderer({
   slots,
   photosById,
   sizeSpec,
+  crops,
+  flipped = false,
   showFold = false,
   className,
 }: {
@@ -31,6 +39,10 @@ export function SpreadRenderer({
   slots: Record<string, string>;
   photosById: ReadonlyMap<string, SpreadPhoto>;
   sizeSpec: AlbumSizeSpec;
+  /** { slot_id: {x, y} } object-position percentages; absent = centered. */
+  crops?: Record<string, SlotCrop>;
+  /** Mirror the slot geometry across the fold. */
+  flipped?: boolean;
   /** Draw a hairline at the center fold — preview only, never print. */
   showFold?: boolean;
   className?: string;
@@ -48,16 +60,17 @@ export function SpreadRenderer({
       {template.slots.map((slot) => {
         const photoId = slots[slot.id];
         const photo = photoId ? photosById.get(photoId) : undefined;
-        const { x, y, w, h } = slot.rect;
+        const rect = flipped ? mirroredRect(slot.rect) : slot.rect;
+        const crop = crops?.[slot.id];
         return (
           <div
             key={slot.id}
             className="absolute overflow-hidden"
             style={{
-              left: `${x * 100}%`,
-              top: `${y * 100}%`,
-              width: `${w * 100}%`,
-              height: `${h * 100}%`,
+              left: `${rect.x * 100}%`,
+              top: `${rect.y * 100}%`,
+              width: `${rect.w * 100}%`,
+              height: `${rect.h * 100}%`,
             }}
           >
             {photo ? (
@@ -65,10 +78,15 @@ export function SpreadRenderer({
                 src={photo.url}
                 alt=""
                 className="h-full w-full object-cover"
+                style={
+                  crop
+                    ? { objectPosition: `${crop.x}% ${crop.y}%` }
+                    : undefined
+                }
                 draggable={false}
               />
             ) : (
-              // An empty slot should read as deliberate whitespace failure,
+              // An empty slot should read as deliberate whitespace,
               // not a broken image: quiet grey, no icon.
               <div className="h-full w-full bg-linen" />
             )}

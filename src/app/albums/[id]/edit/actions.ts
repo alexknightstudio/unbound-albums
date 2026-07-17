@@ -7,7 +7,11 @@ import {
   assignPhotosToTemplate,
   validateSpreadSlots,
 } from "@/lib/engine/editing";
-import { TEMPLATES_BY_CODE } from "@/lib/engine/templates";
+import {
+  TEMPLATES_BY_CODE,
+  clampCrop,
+  type SlotCrop,
+} from "@/lib/engine/templates";
 import { createClient } from "@/lib/supabase/server";
 
 import type { EnginePhoto } from "@/lib/engine/engine";
@@ -19,6 +23,8 @@ type SpreadRow = {
   album_id: string;
   template_code: string;
   slots: Record<string, string>;
+  slot_crops: Record<string, SlotCrop>;
+  flipped: boolean;
 };
 
 /**
@@ -36,7 +42,7 @@ async function loadEditContext(spreadId: string) {
 
   const { data: spread } = await supabase
     .from("spreads")
-    .select("id, album_id, template_code, slots")
+    .select("id, album_id, template_code, slots, slot_crops, flipped")
     .eq("id", spreadId)
     .maybeSingle<SpreadRow>();
   if (!spread) return { error: "Not found." } as const;
@@ -92,9 +98,66 @@ export async function saveSpreadSlots(
   );
   if (!result.ok) return { ok: false, error: result.error };
 
+  // A crop belongs to a photo-in-a-slot. Any slot whose photo changed (or
+  // left) gets its crop reset to centered.
+  const crops: Record<string, SlotCrop> = {};
+  for (const [slotId, crop] of Object.entries(ctx.spread.slot_crops ?? {})) {
+    if (result.slots[slotId] === ctx.spread.slots[slotId]) {
+      crops[slotId] = crop;
+    }
+  }
+
   const { error } = await ctx.supabase
     .from("spreads")
-    .update({ slots: result.slots })
+    .update({ slots: result.slots, slot_crops: crops })
+    .eq("id", spreadId);
+  if (error) return { ok: false, error: "Could not save." };
+
+  revalidatePath(`/albums/${ctx.album.id}/edit`);
+  return { ok: true };
+}
+
+/** Reframe one slot's photo. {x, y} are object-position percentages. */
+export async function saveSlotCrop(
+  spreadId: string,
+  slotId: string,
+  crop: { x: number; y: number },
+): Promise<EditActionState> {
+  const ctx = await loadEditContext(spreadId);
+  if ("error" in ctx) return { ok: false, error: ctx.error };
+
+  const template = TEMPLATES_BY_CODE.get(ctx.spread.template_code);
+  if (!template?.slots.some((s) => s.id === slotId)) {
+    return { ok: false, error: "That slot doesn't exist." };
+  }
+  if (!ctx.spread.slots[slotId]) {
+    return { ok: false, error: "Nothing in that slot to reframe." };
+  }
+  const clean = clampCrop(crop);
+  if (!clean) return { ok: false, error: "Could not save." };
+
+  const { error } = await ctx.supabase
+    .from("spreads")
+    .update({
+      slot_crops: { ...(ctx.spread.slot_crops ?? {}), [slotId]: clean },
+    })
+    .eq("id", spreadId);
+  if (error) return { ok: false, error: "Could not save." };
+
+  revalidatePath(`/albums/${ctx.album.id}/edit`);
+  return { ok: true };
+}
+
+/** Mirror the spread's geometry (photos are never mirrored). */
+export async function toggleSpreadFlip(
+  spreadId: string,
+): Promise<EditActionState> {
+  const ctx = await loadEditContext(spreadId);
+  if ("error" in ctx) return { ok: false, error: ctx.error };
+
+  const { error } = await ctx.supabase
+    .from("spreads")
+    .update({ flipped: !ctx.spread.flipped })
     .eq("id", spreadId);
   if (error) return { ok: false, error: "Could not save." };
 
@@ -135,7 +198,8 @@ export async function changeSpreadTemplate(
 
   const { error } = await ctx.supabase
     .from("spreads")
-    .update({ template_code: templateCode, slots: assignment })
+    // New geometry, fresh framing: crops don't survive a template change.
+    .update({ template_code: templateCode, slots: assignment, slot_crops: {} })
     .eq("id", spreadId);
   if (error) return { ok: false, error: "Could not save." };
 

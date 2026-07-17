@@ -5,18 +5,22 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { SpreadRenderer } from "@/components/spreads/spread-renderer";
 
 import type { AlbumSizeSpec } from "@/lib/albums/sizes";
+import type { SlotCrop } from "@/lib/engine/templates";
 
 export type ViewerSpread = {
   id: string;
   position: number;
   template_code: string;
   slots: Record<string, string>;
+  slot_crops: Record<string, SlotCrop>;
+  flipped: boolean;
 };
 
 /**
  * The album, spread by spread. Scroll-snap does the heavy lifting: swiping
  * works on a phone because it's native scrolling, not a gesture library.
- * Arrows and keyboard for desktop; the filmstrip is the map.
+ * Arrows and keyboard for desktop; the filmstrip is the map; tap the spread
+ * to see it full-screen.
  */
 export function AlbumViewer({
   spreads,
@@ -28,6 +32,7 @@ export function AlbumViewer({
   sizeSpec: AlbumSizeSpec;
 }) {
   const [index, setIndex] = useState(0);
+  const [zoomed, setZoomed] = useState<ViewerSpread | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const photosById = new Map(
     Object.entries(photoUrls).map(([id, url]) => [id, { url }]),
@@ -59,12 +64,14 @@ export function AlbumViewer({
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setZoomed(null);
+      if (zoomed) return;
       if (event.key === "ArrowRight") scrollTo(index + 1);
       if (event.key === "ArrowLeft") scrollTo(index - 1);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [index, scrollTo]);
+  }, [index, scrollTo, zoomed]);
 
   if (spreads.length === 0) return null;
 
@@ -79,14 +86,23 @@ export function AlbumViewer({
       >
         {spreads.map((spread) => (
           <div key={spread.id} className="w-full shrink-0 snap-center px-px">
-            <SpreadRenderer
-              templateCode={spread.template_code}
-              slots={spread.slots}
-              photosById={photosById}
-              sizeSpec={sizeSpec}
-              showFold
-              className="shadow-[0_1px_40px_rgba(0,0,0,0.55)]"
-            />
+            <button
+              type="button"
+              onClick={() => setZoomed(spread)}
+              className="block w-full cursor-zoom-in"
+              aria-label="View this spread larger"
+            >
+              <SpreadRenderer
+                templateCode={spread.template_code}
+                slots={spread.slots}
+                photosById={photosById}
+                sizeSpec={sizeSpec}
+                crops={spread.slot_crops}
+                flipped={spread.flipped}
+                showFold
+                className="shadow-[0_1px_40px_rgba(0,0,0,0.55)]"
+              />
+            </button>
           </div>
         ))}
       </div>
@@ -117,7 +133,10 @@ export function AlbumViewer({
       </div>
 
       {/* Filmstrip — the same renderer, tiny */}
-      <div className="scrollbar-none flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+      <div
+        className="scrollbar-none flex gap-2 overflow-x-auto pb-1"
+        style={{ scrollbarWidth: "none" }}
+      >
         {spreads.map((spread, i) => (
           <button
             key={spread.id}
@@ -125,7 +144,9 @@ export function AlbumViewer({
             onClick={() => scrollTo(i)}
             aria-label={`Go to spread ${i + 1}`}
             className={`w-24 shrink-0 overflow-hidden rounded-sm border transition-colors ${
-              i === index ? "border-parchment" : "border-stone opacity-60 hover:opacity-100"
+              i === index
+                ? "border-parchment"
+                : "border-stone opacity-60 hover:opacity-100"
             }`}
           >
             <SpreadRenderer
@@ -133,10 +154,35 @@ export function AlbumViewer({
               slots={spread.slots}
               photosById={photosById}
               sizeSpec={sizeSpec}
+              crops={spread.slot_crops}
+              flipped={spread.flipped}
             />
           </button>
         ))}
       </div>
+
+      {/* Zoom — the spread, and nothing else */}
+      {zoomed ? (
+        <div
+          className="fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-ink/95 p-4 sm:p-10"
+          onClick={() => setZoomed(null)}
+          role="dialog"
+          aria-label="Spread, enlarged"
+        >
+          <div className="w-full max-w-6xl">
+            <SpreadRenderer
+              templateCode={zoomed.template_code}
+              slots={zoomed.slots}
+              photosById={photosById}
+              sizeSpec={sizeSpec}
+              crops={zoomed.slot_crops}
+              flipped={zoomed.flipped}
+              showFold
+              className="shadow-[0_1px_60px_rgba(0,0,0,0.8)]"
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

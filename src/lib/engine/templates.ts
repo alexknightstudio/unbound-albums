@@ -628,6 +628,26 @@ export function slotAcceptsPhoto(
   return accepts === orientation;
 }
 
+/** Mirror a rect across the spread's vertical center. Used by "flip
+ * spread": the GEOMETRY mirrors, the photos never do. Involutive —
+ * mirroring twice returns the original. */
+export function mirroredRect(rect: SlotRect): SlotRect {
+  return { ...rect, x: 1 - rect.x - rect.w };
+}
+
+/** Per-slot reframing as CSS object-position percentages. 50/50 = centered
+ * (the default when absent). */
+export type SlotCrop = { x: number; y: number };
+
+export function clampCrop(value: unknown): SlotCrop | null {
+  if (typeof value !== "object" || value === null) return null;
+  const v = value as Record<string, unknown>;
+  if (typeof v.x !== "number" || typeof v.y !== "number") return null;
+  if (Number.isNaN(v.x) || Number.isNaN(v.y)) return null;
+  const clamp = (n: number) => Math.max(0, Math.min(100, n));
+  return { x: clamp(v.x), y: clamp(v.y) };
+}
+
 /** A rect is full-bleed if it touches all four edges of its page (or the
  * whole spread). Full-bleed rects are exempt from safe-margin rules. */
 export function isFullBleed(rect: SlotRect): boolean {

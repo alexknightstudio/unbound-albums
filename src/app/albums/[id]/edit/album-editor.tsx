@@ -2,7 +2,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 
 import { SpreadRenderer } from "@/components/spreads/spread-renderer";
 import {
@@ -12,13 +12,19 @@ import {
   type CoverLayoutStyle,
 } from "@/lib/albums/cover";
 import { compatibleTemplates } from "@/lib/engine/editing";
-import { TEMPLATES_BY_CODE } from "@/lib/engine/templates";
+import {
+  TEMPLATES_BY_CODE,
+  mirroredRect,
+  type SlotCrop,
+} from "@/lib/engine/templates";
 
 import {
   changeSpreadTemplate,
   reorderSpreads,
   saveCover,
+  saveSlotCrop,
   saveSpreadSlots,
+  toggleSpreadFlip,
 } from "./actions";
 
 import type { ViewerSpread } from "@/components/album/album-viewer";
@@ -38,6 +44,16 @@ type Selection =
   | { kind: "slot"; slotId: string }
   | { kind: "tray"; photoId: string }
   | null;
+
+type CropDrag = {
+  startX: number;
+  startY: number;
+  startCrop: SlotCrop;
+  boxW: number;
+  boxH: number;
+  naturalW: number;
+  naturalH: number;
+};
 
 /**
  * The editor. Tap-first: select a photo (white ring), tap where it should
@@ -64,6 +80,12 @@ export function AlbumEditor({
   const [tab, setTab] = useState<"pages" | "cover">("pages");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // Reframing: which slot is in crop mode, its live crop, the photo's
+  // natural dimensions (loaded async on mode entry), and the drag.
+  const [cropSlotId, setCropSlotId] = useState<string | null>(null);
+  const [liveCrop, setLiveCrop] = useState<SlotCrop | null>(null);
+  const [cropNatural, setCropNatural] = useState<{ w: number; h: number } | null>(null);
+  const cropDrag = useRef<CropDrag | null>(null);
 
   const spread = spreads[Math.min(current, spreads.length - 1)];
   const photosById = useMemo(
@@ -91,16 +113,141 @@ export function AlbumEditor({
 
   function commitSlots(next: Record<string, string>) {
     const previous = spread.slots;
+    const previousCrops = spread.slot_crops;
+    // Mirror the server's rule locally: a slot whose photo changed loses
+    // its crop.
+    const nextCrops: Record<string, SlotCrop> = {};
+    for (const [slotId, crop] of Object.entries(previousCrops ?? {})) {
+      if (next[slotId] === previous[slotId]) nextCrops[slotId] = crop;
+    }
     setError(null);
     setSpreads((all) =>
-      all.map((s) => (s.id === spread.id ? { ...s, slots: next } : s)),
+      all.map((s) =>
+        s.id === spread.id ? { ...s, slots: next, slot_crops: nextCrops } : s,
+      ),
     );
     setSelection(null);
     startTransition(async () => {
       const result = await saveSpreadSlots(spread.id, next);
       if (!result.ok) {
         setSpreads((all) =>
-          all.map((s) => (s.id === spread.id ? { ...s, slots: previous } : s)),
+          all.map((s) =>
+            s.id === spread.id
+              ? { ...s, slots: previous, slot_crops: previousCrops }
+              : s,
+          ),
+        );
+        fail(result.error ?? "Could not save.");
+      }
+    });
+  }
+
+  function enterCropMode(slotId: string) {
+    setCropSlotId(slotId);
+    setLiveCrop(spread.slot_crops?.[slotId] ?? { x: 50, y: 50 });
+    setSelection(null);
+    // The photo's natural size arrives async; drags before onload no-op.
+    setCropNatural(null);
+    const photoId = spread.slots[slotId];
+    const photo = photoId ? photosById.get(photoId) : undefined;
+    if (photo?.url) {
+      const img = new Image();
+      img.onload = () =>
+        setCropNatural({ w: img.naturalWidth, h: img.naturalHeight });
+      img.src = photo.url;
+    }
+  }
+
+  function exitCropMode() {
+    setCropSlotId(null);
+    setLiveCrop(null);
+    setCropNatural(null);
+    cropDrag.current = null;
+  }
+
+  function onCropPointerDown(event: React.PointerEvent<HTMLDivElement>) {
+    if (!cropSlotId || !liveCrop || !cropNatural) return;
+    const box = event.currentTarget.getBoundingClientRect();
+    cropDrag.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      startCrop: liveCrop,
+      boxW: box.width,
+      boxH: box.height,
+      naturalW: cropNatural.w,
+      naturalH: cropNatural.h,
+    };
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Capture is an enhancement (keeps the drag when the pointer leaves
+      // the slot). Some environments reject the pointer id; drag still works.
+    }
+  }
+
+  function onCropPointerMove(event: React.PointerEvent<HTMLDivElement>) {
+    const drag = cropDrag.current;
+    if (!drag || drag.naturalW === 0 || drag.naturalH === 0) return;
+    // object-fit: cover overflows on exactly one axis; dragging pans it.
+    const scale = Math.max(
+      drag.boxW / drag.naturalW,
+      drag.boxH / drag.naturalH,
+    );
+    const overflowX = drag.naturalW * scale - drag.boxW;
+    const overflowY = drag.naturalH * scale - drag.boxH;
+    const clamp = (n: number) => Math.max(0, Math.min(100, n));
+    setLiveCrop({
+      x:
+        overflowX > 1
+          ? clamp(
+              drag.startCrop.x -
+                ((event.clientX - drag.startX) / overflowX) * 100,
+            )
+          : drag.startCrop.x,
+      y:
+        overflowY > 1
+          ? clamp(
+              drag.startCrop.y -
+                ((event.clientY - drag.startY) / overflowY) * 100,
+            )
+          : drag.startCrop.y,
+    });
+  }
+
+  function onCropPointerUp() {
+    if (!cropDrag.current || !cropSlotId || !liveCrop) return;
+    cropDrag.current = null;
+    const slotId = cropSlotId;
+    const crop = liveCrop;
+    // Persist on release; the mode stays open for further nudging.
+    setSpreads((all) =>
+      all.map((s) =>
+        s.id === spread.id
+          ? { ...s, slot_crops: { ...(s.slot_crops ?? {}), [slotId]: crop } }
+          : s,
+      ),
+    );
+    startTransition(async () => {
+      const result = await saveSlotCrop(spread.id, slotId, crop);
+      if (!result.ok) fail(result.error ?? "Could not save.");
+    });
+  }
+
+  function onFlip() {
+    const previous = spread.flipped;
+    setError(null);
+    setSelection(null);
+    exitCropMode();
+    setSpreads((all) =>
+      all.map((s) => (s.id === spread.id ? { ...s, flipped: !previous } : s)),
+    );
+    startTransition(async () => {
+      const result = await toggleSpreadFlip(spread.id);
+      if (!result.ok) {
+        setSpreads((all) =>
+          all.map((s) =>
+            s.id === spread.id ? { ...s, flipped: previous } : s,
+          ),
         );
         fail(result.error ?? "Could not save.");
       }
@@ -246,34 +393,83 @@ export function AlbumEditor({
               slots={spread.slots}
               photosById={photoUrlMap}
               sizeSpec={sizeSpec}
+              crops={
+                cropSlotId && liveCrop
+                  ? { ...(spread.slot_crops ?? {}), [cropSlotId]: liveCrop }
+                  : spread.slot_crops
+              }
+              flipped={spread.flipped}
               showFold
             />
             {template
               ? template.slots.map((slot) => {
+                  const rect = spread.flipped
+                    ? mirroredRect(slot.rect)
+                    : slot.rect;
+                  const style = {
+                    left: `${rect.x * 100}%`,
+                    top: `${rect.y * 100}%`,
+                    width: `${rect.w * 100}%`,
+                    height: `${rect.h * 100}%`,
+                  };
+                  if (cropSlotId === slot.id) {
+                    // Crop mode: this slot becomes a drag surface.
+                    return (
+                      <div
+                        key={slot.id}
+                        role="slider"
+                        aria-label={`Reframe ${slot.id}`}
+                        aria-valuenow={liveCrop ? Math.round(liveCrop.x) : 50}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuetext={
+                          liveCrop ? `${Math.round(liveCrop.x)}%, ${Math.round(liveCrop.y)}%` : undefined
+                        }
+                        onPointerDown={onCropPointerDown}
+                        onPointerMove={onCropPointerMove}
+                        onPointerUp={onCropPointerUp}
+                        className="absolute cursor-move ring-2 ring-white"
+                        style={{ ...style, touchAction: "none" }}
+                      />
+                    );
+                  }
                   const isSelected =
                     selection?.kind === "slot" && selection.slotId === slot.id;
                   return (
                     <button
                       key={slot.id}
                       type="button"
-                      onClick={() => onSlotTap(slot.id)}
+                      onClick={() => {
+                        if (cropSlotId) return; // one thing at a time
+                        onSlotTap(slot.id);
+                      }}
                       aria-label={`Slot ${slot.id}`}
                       className={`absolute transition-shadow ${
                         isSelected
                           ? "ring-2 ring-white ring-offset-0"
                           : "hover:ring-1 hover:ring-white/50"
                       }`}
-                      style={{
-                        left: `${slot.rect.x * 100}%`,
-                        top: `${slot.rect.y * 100}%`,
-                        width: `${slot.rect.w * 100}%`,
-                        height: `${slot.rect.h * 100}%`,
-                      }}
+                      style={style}
                     />
                   );
                 })
               : null}
           </div>
+
+          {cropSlotId ? (
+            <div className="flex items-center justify-between gap-3 rounded-md border border-stone px-4 py-3">
+              <span className="text-xs text-pewter">
+                Drag the photo to reframe it. It saves as you go.
+              </span>
+              <button
+                type="button"
+                onClick={exitCropMode}
+                className="rounded-md bg-parchment px-4 py-1.5 text-xs text-ink"
+              >
+                Done
+              </button>
+            </div>
+          ) : null}
 
           {/* Spread controls */}
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -324,6 +520,14 @@ export function AlbumEditor({
               </button>
               <button
                 type="button"
+                onClick={onFlip}
+                disabled={pending}
+                className="rounded-md border border-stone px-3 py-2 text-xs text-pewter transition-colors hover:border-pewter hover:text-parchment disabled:opacity-30"
+              >
+                Flip spread
+              </button>
+              <button
+                type="button"
                 onClick={() => void onRegenerate()}
                 disabled={pending}
                 className="rounded-md border border-stone px-3 py-2 text-xs text-pewter transition-colors hover:border-pewter hover:text-parchment disabled:opacity-30"
@@ -333,12 +537,19 @@ export function AlbumEditor({
             </div>
           </div>
 
-          {selection?.kind === "slot" ? (
-            <div className="flex items-center gap-3 rounded-md border border-stone px-4 py-3">
+          {selection?.kind === "slot" && !cropSlotId ? (
+            <div className="flex flex-wrap items-center gap-3 rounded-md border border-stone px-4 py-3">
               <span className="text-xs text-pewter">
                 Photo selected. Tap another slot to swap, a tray photo to
                 replace it, or
               </span>
+              <button
+                type="button"
+                onClick={() => enterCropMode(selection.slotId)}
+                className="rounded-md border border-stone px-3 py-1.5 text-xs text-pewter hover:border-pewter hover:text-parchment"
+              >
+                Reframe it
+              </button>
               <button
                 type="button"
                 onClick={onRemoveSelected}

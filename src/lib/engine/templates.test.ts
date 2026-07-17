@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import { ALBUM_SIZE_SPECS, ALBUM_SIZES } from "../albums/sizes";
 
-import { SPREAD_TEMPLATES, isFullBleed, type SlotRect } from "./templates";
+import {
+  SPREAD_TEMPLATES,
+  clampCrop,
+  isFullBleed,
+  mirroredRect,
+  type SlotRect,
+} from "./templates";
 
 /** Geometry contract for every template. These rules are what make one
  * renderer able to draw all 23 templates safely at print. */
@@ -83,6 +89,54 @@ describe("template geometry", () => {
       });
     });
   }
+
+  describe("mirroredRect", () => {
+    it("is involutive — flipping twice restores the original", () => {
+      for (const template of SPREAD_TEMPLATES) {
+        for (const slot of template.slots) {
+          const twice = mirroredRect(mirroredRect(slot.rect));
+          expect(twice.x).toBeCloseTo(slot.rect.x, 10);
+          expect(twice.y).toBe(slot.rect.y);
+          expect(twice.w).toBe(slot.rect.w);
+          expect(twice.h).toBe(slot.rect.h);
+        }
+      }
+    });
+
+    it("keeps every mirrored rect inside the canvas", () => {
+      for (const template of SPREAD_TEMPLATES) {
+        for (const slot of template.slots) {
+          const m = mirroredRect(slot.rect);
+          expect(m.x).toBeGreaterThanOrEqual(-1e-9);
+          expect(m.x + m.w).toBeLessThanOrEqual(1.000001);
+          expect(m.y).toBe(slot.rect.y);
+          expect(m.w).toBe(slot.rect.w);
+        }
+      }
+    });
+
+    it("mirrors a left-page slot onto the right page", () => {
+      const m = mirroredRect({ x: 0.1, y: 0.2, w: 0.3, h: 0.6 });
+      expect(m.x).toBeCloseTo(0.6);
+    });
+  });
+
+  describe("clampCrop", () => {
+    it("passes valid crops through", () => {
+      expect(clampCrop({ x: 30, y: 70 })).toEqual({ x: 30, y: 70 });
+    });
+
+    it("clamps out-of-range values", () => {
+      expect(clampCrop({ x: -20, y: 150 })).toEqual({ x: 0, y: 100 });
+    });
+
+    it("rejects malformed values", () => {
+      expect(clampCrop(null)).toBeNull();
+      expect(clampCrop({ x: "left", y: 4 })).toBeNull();
+      expect(clampCrop({ x: NaN, y: 4 })).toBeNull();
+      expect(clampCrop("centered")).toBeNull();
+    });
+  });
 
   it("only panoramas, grids, and full-spread slots cross the center fold", () => {
     // The fold is physical. Small floated slots must not straddle it; wide

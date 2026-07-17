@@ -182,6 +182,9 @@ export async function POST(
     .update({
       template_code: proposal.template_code,
       slots: validation.slots,
+      // A redesign starts clean: centered crops, unmirrored geometry.
+      slot_crops: {},
+      flipped: false,
       regen_count: spread.regen_count + 1,
     })
     .eq("id", spread.id);
