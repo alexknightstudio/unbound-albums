@@ -27,7 +27,19 @@ type AlbumRow = {
   size: string;
   share_slug: string;
   brief: AlbumBrief | null;
+  event_date: string | null;
+  venue: string | null;
 };
+
+function formatEventDate(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
 
 type ProofRow = {
   id: string;
@@ -93,7 +105,7 @@ export default async function AlbumPage({
 
   const { data: album } = await supabase
     .from("albums")
-    .select("id, title, status, size, share_slug, brief")
+    .select("id, title, status, size, share_slug, brief, event_date, venue")
     .eq("id", id)
     .maybeSingle<AlbumRow>();
 
@@ -128,6 +140,16 @@ export default async function AlbumPage({
 
       <header className="flex flex-col gap-3">
         <h1 className="font-display text-5xl text-parchment">{album.title}</h1>
+        {album.event_date || album.venue ? (
+          <p className="text-sm text-slate">
+            {[
+              album.event_date ? formatEventDate(album.event_date) : null,
+              album.venue,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+        ) : null}
         <p className="text-sm text-pewter">
           {ALBUM_SIZE_SPECS[size].label} · {statusCopy(album.status)}
         </p>
@@ -140,7 +162,9 @@ export default async function AlbumPage({
         </>
       ) : null}
 
-      {album.status === "briefing" ? <BriefForm albumId={album.id} /> : null}
+      {album.status === "briefing" ? (
+        <BriefForm albumId={album.id} initialSize={size} />
+      ) : null}
 
       {album.status === "in_design" ? (
         <section className="flex flex-col gap-4 rounded-md border border-stone p-6">

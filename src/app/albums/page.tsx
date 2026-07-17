@@ -40,10 +40,12 @@ export default async function AlbumsPage() {
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-14 px-6 py-16">
       <header className="flex flex-col gap-3">
         <h1 className="font-display text-5xl text-parchment">
-          {existing.length > 0 ? "Your albums." : "Create your album."}
+          {existing.length > 0 ? "Your albums." : "Start your album."}
         </h1>
         <p className="text-sm text-pewter">
-          Around 150 photos. We&rsquo;ll do the rest.
+          {existing.length > 0
+            ? "Around 150 photos. A designer does the rest."
+            : "Who, when, where — then your photos. A designer does the rest."}
         </p>
       </header>
 

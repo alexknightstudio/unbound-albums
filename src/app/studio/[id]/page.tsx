@@ -27,6 +27,8 @@ type AlbumRow = {
   size: string;
   brief: AlbumBrief | null;
   created_at: string;
+  event_date: string | null;
+  venue: string | null;
 };
 
 function briefLine(brief: AlbumBrief) {
@@ -65,7 +67,7 @@ export default async function StudioAlbumPage({
 
   const { data: album } = await supabase
     .from("albums")
-    .select("id, title, status, size, brief, created_at")
+    .select("id, title, status, size, brief, created_at, event_date, venue")
     .eq("id", id)
     .maybeSingle<AlbumRow>();
   if (!album) notFound();
@@ -152,6 +154,17 @@ export default async function StudioAlbumPage({
             The brief
           </h2>
           <dl className="flex flex-col gap-2">
+            {[
+              ...(album.event_date
+                ? [{ label: "The day", value: album.event_date }]
+                : []),
+              ...(album.venue ? [{ label: "Venue", value: album.venue }] : []),
+            ].map((row) => (
+              <div key={row.label} className="flex gap-4">
+                <dt className="w-24 shrink-0 text-xs text-slate">{row.label}</dt>
+                <dd className="text-sm text-parchment">{row.value}</dd>
+              </div>
+            ))}
             {briefLine(album.brief).map((row) => (
               <div key={row.label} className="flex gap-4">
                 <dt className="w-24 shrink-0 text-xs text-slate">{row.label}</dt>

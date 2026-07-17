@@ -10,6 +10,13 @@ import {
   DESIGN_MOODS,
   FONT_STYLES,
 } from "@/lib/albums/brief";
+import {
+  ALBUM_SIZES,
+  ALBUM_SIZE_SPECS,
+  type AlbumSize,
+  BASE_SPREAD_COUNT,
+  formatPrice,
+} from "@/lib/albums/sizes";
 
 import { submitBrief, type ActionState } from "./actions";
 
@@ -80,12 +87,19 @@ function SubmitButton() {
   );
 }
 
-export function BriefForm({ albumId }: { albumId: string }) {
+export function BriefForm({
+  albumId,
+  initialSize,
+}: {
+  albumId: string;
+  initialSize: AlbumSize;
+}) {
   const [state, formAction] = useActionState(
     submitBrief.bind(null, albumId),
     IDLE,
   );
 
+  const [size, setSize] = useState<AlbumSize>(initialSize);
   const [material, setMaterial] = useState<CoverMaterial>("linen");
   const [color, setColor] = useState<string>(COVER_MATERIALS[0].colors[0]);
   const [cameo, setCameo] = useState<string>("none");
@@ -101,9 +115,49 @@ export function BriefForm({ albumId }: { albumId: string }) {
           Tell us the look.
         </h2>
         <p className="max-w-md text-sm leading-relaxed text-pewter">
-          Five choices and a note. Your designer takes it from here.
+          Six choices and a note. Your designer takes it from here.
         </p>
       </div>
+
+      <Fieldset legend="The size">
+        <div className="grid grid-cols-3 gap-3">
+          {ALBUM_SIZES.map((option) => {
+            const spec = ALBUM_SIZE_SPECS[option];
+            const selected = size === option;
+            return (
+              <label
+                key={option}
+                className={`flex cursor-pointer flex-col items-center gap-1.5 rounded-md border px-3 py-5 transition-colors ${
+                  selected
+                    ? "border-parchment bg-charcoal"
+                    : "border-stone hover:border-pewter"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="size"
+                  value={option}
+                  checked={selected}
+                  onChange={() => setSize(option)}
+                  className="sr-only"
+                />
+                <span
+                  className={`font-display text-2xl ${selected ? "text-parchment" : "text-pewter"}`}
+                >
+                  {spec.label}
+                </span>
+                <span className="text-xs text-slate">
+                  {formatPrice(spec.priceCents)}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+        <p className="text-xs text-slate">
+          {BASE_SPREAD_COUNT} spreads — {BASE_SPREAD_COUNT * 2} lay-flat pages,
+          hardcover. The design is free; you pay only when you order.
+        </p>
+      </Fieldset>
 
       <Fieldset legend="Cover material">
         <div className="grid gap-3 sm:grid-cols-2">

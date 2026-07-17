@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { parseBrief } from "@/lib/albums/brief";
+import { isAlbumSize } from "@/lib/albums/sizes";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -76,12 +77,17 @@ export async function submitBrief(
   });
   if (!parsed.ok) return { status: "error", message: parsed.message };
 
+  const size = formData.get("size");
+  if (!isAlbumSize(size)) {
+    return { status: "error", message: "Pick a size." };
+  }
+
   const { supabase, album } = await ownAlbum(albumId);
   if (!album) return { status: "error", message: "Album not found." };
 
   const { data, error } = await supabase
     .from("albums")
-    .update({ brief: parsed.brief, status: "in_design" })
+    .update({ brief: parsed.brief, size, status: "in_design" })
     .eq("id", albumId)
     .eq("status", "briefing")
     .select("id")
