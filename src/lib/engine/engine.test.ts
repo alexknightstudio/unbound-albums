@@ -76,11 +76,12 @@ describe("slotAcceptsPhoto", () => {
 // ---------------------------------------------------------------------------
 
 describe("spreadTargetFor", () => {
-  it("targets 30 spreads for the full 150-photo album", () => {
+  it("caps the full 150-photo album at the 15-spread book", () => {
     expect(spreadTargetFor(150)).toBe(MAX_SPREADS);
+    expect(MAX_SPREADS).toBe(15);
   });
 
-  it("never exceeds the priced base of 30", () => {
+  it("never exceeds the album's 15 spreads", () => {
     expect(spreadTargetFor(200)).toBe(MAX_SPREADS);
   });
 

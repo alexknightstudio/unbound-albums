@@ -2,7 +2,7 @@
 
 ## What this project is
 
-Unbound Albums (unboundalbums.com) is a self-serve AI wedding album creator. Couples upload ~150 curated wedding photos; Claude's vision API analyzes every photo; a layout engine arranges them into professionally designed album spreads; couples preview for free, edit with a full drag-and-drop editor, design their cover, and pay to order a premium printed hardcover ($149–249). Fulfillment is manual in v1 (founder orders through Miller's Lab / Bay Photo from an admin panel).
+Unbound Albums (unboundalbums.com) is a self-serve AI wedding album creator. Couples upload ~150 curated wedding photos; Claude's vision API analyzes every photo; a layout engine arranges them into professionally designed album spreads; couples preview for free, edit with a full drag-and-drop editor, design their cover, and pay to order a premium printed hardcover ($249–299, placeholder pricing). Fulfillment is manual in v1 (founder orders through Miller's Lab / Bay Photo from an admin panel).
 
 The founder is Alex Knight, a professional wedding photographer. He is technical-adjacent but not a developer — explain decisions plainly, and never assume he'll debug raw stack traces alone.
 
@@ -16,8 +16,10 @@ The founder is Alex Knight, a professional wedding photographer. He is technical
 - Full cover designer: hero image picker (AI pre-ranks candidates), title/subtitle, 3 layout styles
 - Print only — no digital-only product. Every order includes a free shareable web preview link.
 - Upsell: additional copies of the same album at 30% off (parent albums)
-- Print fulfillment: MANUAL in v1 via admin panel. No print API integration.
-- Pricing v1: 8×8 $149 · 10×10 $199 · 12×12 $249 (30 spreads base; placeholder, easily configurable)
+- Print fulfillment: MANUAL in v1 via admin panel. No print API integration. (Aspiration: a DreamBooks Pro partnership — Alex's current album producer — once UNBOUND is real enough to pitch; Miller's/Bay remain the v1 path.)
+- Sizes v2 (2026-07-16): 10×10 (hero) · 12×12 · 11×14. 8×8 dropped. The album is 15 spreads, flat price.
+- Pricing v1: 10×10 $249 · 12×12 $279 · 11×14 $299 (placeholder pending DreamBooks economics; easily configurable in src/lib/albums/sizes.ts)
+- Print spec (Miller's): full-spread files (page width × 2) at 250 DPI, no bleed, 0.5" safe zone from trim edges, no faces on the centerfold. Albums start AND end with full panorama spreads — there are no single first/last pages.
 
 ## Stack
 

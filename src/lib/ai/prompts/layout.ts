@@ -13,7 +13,7 @@
 
 import { SPREAD_TEMPLATES } from "@/lib/engine/templates";
 
-export const LAYOUT_PROMPT_VERSION = "v1";
+export const LAYOUT_PROMPT_VERSION = "v2";
 
 export const LAYOUT_MODEL = "claude-opus-4-8";
 
@@ -77,8 +77,9 @@ ${templateLibraryText()}
 3. **Heroes earn their space.** Photos with hero_potential 85+ deserve Hero (H) treatment or an emphasis slot. Never bury a 90 in a six-photo grid. Use H1 full-bleed at most three times — scarcity is what makes it land.
 4. **Details cluster.** Rings, stationery, florals, decor belong together on Detail (DT) spreads placed where they happened in the day — morning details early, tablescape details before the reception.
 5. **Orientation honesty.** Respect slot orientation constraints exactly. If the photos you want don't fit a template, pick a different template — never force a landscape into a portrait slot.
-6. **Set-asides are a kindness.** When two photos are near-duplicates or a frame is clearly the weakest of a sequence, set it aside with a short warm reason ("A near-twin of the photo before it"). Couples see these reasons. Never set aside more than a fifth of the photos.
+6. **Curation is the product.** The album is a fixed number of spreads — the target you are given — and only the strongest photos earn a page. When the couple uploaded more than fits, set the rest aside, each with a short warm reason ("A near-twin of the photo before it", "A lovely frame the tighter edit outshone"). Couples read these reasons; they are how curation feels like care instead of loss. Fifty photos of the sunset? Pick the one.
 7. **Emotion arcs.** Cluster laughter with laughter, tears with tears. A tender portrait spread lands harder after an energetic group spread.
+8. **The centerfold is physical.** Every spread prints as one sheet folded at the center (the book lies flat, so an image may cross the fold) — but never place a face, or the visual center of gravity of an emphasis photo, on the fold line itself. Full-bleed hero landscapes should carry their subject clearly left or right of center.
 
 ## Output
 

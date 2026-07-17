@@ -46,11 +46,13 @@ export type ValidationResult =
   | { ok: false; errors: string[] };
 
 /**
- * How many spreads an album should aim for. 30 is the priced base for a full
- * 150-photo album (~5 photos per spread); smaller uploads scale down but
- * never below the minimum a book needs to feel like a book.
+ * How many spreads an album should aim for. 15 is the album (flat price,
+ * v2 decision 2026-07-16): a 150-photo upload gets aggressively curated —
+ * that's the product promise — rather than diluted across 30 spreads.
+ * Smaller uploads scale down but never below the minimum a book needs to
+ * feel like a book. Keep in sync with BASE_SPREAD_COUNT in albums/sizes.ts.
  */
-export const MAX_SPREADS = 30;
+export const MAX_SPREADS = 15;
 export const MIN_SPREADS = 3;
 export const PHOTOS_PER_SPREAD = 5;
 
