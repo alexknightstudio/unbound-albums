@@ -5,7 +5,10 @@ import "./globals.css";
 const cormorant = Cormorant_Garamond({
   variable: "--font-cormorant",
   subsets: ["latin"],
-  weight: ["300"],
+  // 300 for large display only; 400/500 for smaller serif moments (the
+  // readability rule: never Light below 36px). Italics are the tagline voice.
+  weight: ["300", "400", "500"],
+  style: ["normal", "italic"],
   display: "swap",
 });
 

@@ -11,10 +11,14 @@ export function Reveal({
   children,
   className,
   delay = 0,
+  direction = "up",
 }: {
   children: React.ReactNode;
   className?: string;
   delay?: number;
+  /** Which side the content arrives from — the alternating craft rows slide
+   * in from their image side. */
+  direction?: "up" | "left" | "right";
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -25,6 +29,8 @@ export function Reveal({
     if (el.getBoundingClientRect().top < window.innerHeight * 0.85) return;
 
     el.classList.add("reveal-init");
+    if (direction === "left") el.classList.add("reveal-left");
+    if (direction === "right") el.classList.add("reveal-right");
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -36,7 +42,7 @@ export function Reveal({
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [direction]);
 
   return (
     <div
