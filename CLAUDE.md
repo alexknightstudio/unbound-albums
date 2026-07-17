@@ -2,24 +2,27 @@
 
 ## What this project is
 
-Unbound Albums (unboundalbums.com) is a self-serve AI wedding album creator. Couples upload ~150 curated wedding photos; Claude's vision API analyzes every photo; a layout engine arranges them into professionally designed album spreads; couples preview for free, edit with a full drag-and-drop editor, design their cover, and pay to order a premium printed hardcover ($249–299, placeholder pricing). Fulfillment is manual in v1 (founder orders through Miller's Lab / Bay Photo from an admin panel).
+Unbound Albums (unboundalbums.com) is a designed-for-you wedding album service. Couples upload ~150 curated wedding photos and answer a short style brief (cover material, cameo, foil font, mood); a professional album designer creates the album in their own pro tools (SmartAlbums / Fundy / InDesign) and uploads finished spread images as a proof; couples review, leave per-page revision notes, and approve. The design is free. Revenue: a premium printed hardcover ($249–299, placeholder pricing) or a $99 print-ready file download for couples who print elsewhere. Fulfillment is manual in v1.
 
 The founder is Alex Knight, a professional wedding photographer. He is technical-adjacent but not a developer — explain decisions plainly, and never assume he'll debug raw stack traces alone.
 
 ## Product decisions — LOCKED (do not relitigate)
 
-- Fully self-serve: AI output goes straight to couples, no human review step
-- Full editor: drag photos between slots, change spread templates, reorder spreads
-- Free preview; payment only at print order (Stripe Checkout)
+**PIVOT (2026-07-17): human designers, not client-facing AI.** Alex judged AI design output not yet good enough to sell. Hired designers design every album in external pro tools and upload finished spreads. The AI pipeline (analysis, layout engine, editor, steerable regen) is DORMANT, not deleted — kept as possible future internal designer tooling. Do not route couples through it.
+
+- Designed-for-you: a human designer creates every album; couples never design
+- Client flow: upload → brief (style questionnaire) → in_design (designer queue) → proof_ready → revision loop → approved → print order or file download
+- Couples' only controls: the brief, per-page revision notes, approve. No client editor.
+- Revisions: no hard cap in v1 (small volume); designer discretion
+- Free design; monetization is the print order OR a $99 print-ready file download (DOWNLOAD_PRICE_CENTS in src/lib/albums/sizes.ts). Files are watermark-free, full-res, delivered only after payment.
+- Brief options v1 (src/lib/albums/brief.ts): cover material (linen / leather / distressed leather / velvet + color set per material), cameo (none / front photo window), foil font style (serif / script / modern), design mood (classic / editorial / romantic), free-text notes
+- Designers are staff: `staff` table (role designer/admin), work from /studio queue; designer accounts created manually in v1
 - Curated upload: couples select ~150 photos (hard cap 200), not full galleries
-- Layout + smart color correction only. Correction applies ONLY to images detected as uncorrected (phone photos); professionally edited photos pass through untouched. NO skin smoothing, NO obstruction removal in v1.
-- Full cover designer: hero image picker (AI pre-ranks candidates), title/subtitle, 3 layout styles
-- Print only — no digital-only product. Every order includes a free shareable web preview link.
-- Upsell: additional copies of the same album at 30% off (parent albums)
+- Print only for physical product; every album keeps the free shareable web preview link
 - Print fulfillment: MANUAL in v1 via admin panel. No print API integration. (Aspiration: a DreamBooks Pro partnership — Alex's current album producer — once UNBOUND is real enough to pitch; Miller's/Bay remain the v1 path.)
 - Sizes v2 (2026-07-16): 10×10 (hero) · 12×12 · 11×14. 8×8 dropped. The album is 15 spreads, flat price.
 - Pricing v1: 10×10 $249 · 12×12 $279 · 11×14 $299 (placeholder pending DreamBooks economics; easily configurable in src/lib/albums/sizes.ts)
-- Print spec (Miller's): full-spread files (page width × 2) at 250 DPI, no bleed, 0.5" safe zone from trim edges, no faces on the centerfold. Albums start AND end with full panorama spreads — there are no single first/last pages.
+- Print spec (Miller's): full-spread files (page width × 2) at 250 DPI, no bleed, 0.5" safe zone from trim edges, no faces on the centerfold. Albums start AND end with full panorama spreads — there are no single first/last pages. Designers must deliver to this spec.
 
 ## Stack
 

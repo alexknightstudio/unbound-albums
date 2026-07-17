@@ -3,17 +3,22 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { AlbumViewer } from "@/components/album/album-viewer";
+import { type AlbumBrief, briefSummary } from "@/lib/albums/brief";
 import { loadAlbumPresentation } from "@/lib/albums/presentation";
 import {
   ALBUM_SIZE_SPECS,
   DEFAULT_ALBUM_SIZE,
+  DOWNLOAD_PRICE_CENTS,
+  formatPrice,
   isAlbumSize,
 } from "@/lib/albums/sizes";
-import { type AlbumStatus, statusCopy } from "@/lib/albums/status";
+import { type AlbumStatus, hasProof, statusCopy } from "@/lib/albums/status";
 import { createClient } from "@/lib/supabase/server";
 
-import { AnalysisRunner } from "./analysis-runner";
+import { BriefForm } from "./brief-form";
+import { FinishUploadingButton } from "./finish-uploading-button";
 import { PhotoUploader } from "./photo-uploader";
+import { ProofViewer, type ProofPageView } from "./proof-viewer";
 
 type AlbumRow = {
   id: string;
@@ -21,7 +26,56 @@ type AlbumRow = {
   status: AlbumStatus;
   size: string;
   share_slug: string;
+  brief: AlbumBrief | null;
 };
+
+type ProofRow = {
+  id: string;
+  round: number;
+  note: string | null;
+};
+
+async function loadLatestProof(albumId: string) {
+  const supabase = await createClient();
+  const { data: proof } = await supabase
+    .from("proofs")
+    .select("id, round, note")
+    .eq("album_id", albumId)
+    .order("round", { ascending: false })
+    .limit(1)
+    .maybeSingle<ProofRow>();
+  if (!proof) return null;
+
+  const { data: pageRows } = await supabase
+    .from("proof_pages")
+    .select("position, storage_path")
+    .eq("proof_id", proof.id)
+    .order("position", { ascending: true })
+    .returns<Array<{ position: number; storage_path: string }>>();
+  if (!pageRows || pageRows.length === 0) return null;
+
+  const { data: signed } = await supabase.storage
+    .from("proofs")
+    .createSignedUrls(
+      pageRows.map((p) => p.storage_path),
+      60 * 60,
+    );
+
+  const pages: ProofPageView[] = pageRows.flatMap((p, i) => {
+    const url = signed?.[i]?.signedUrl;
+    return url ? [{ position: p.position, url }] : [];
+  });
+  if (pages.length === 0) return null;
+
+  const { data: notes } = await supabase
+    .from("revision_notes")
+    .select("position, note, created_at")
+    .eq("proof_id", proof.id)
+    .order("created_at", { ascending: true })
+    .returns<Array<{ position: number | null; note: string; created_at: string }>>();
+
+  return { proof, pages, notes: notes ?? [] };
+}
 
 export default async function AlbumPage({
   params,
@@ -39,7 +93,7 @@ export default async function AlbumPage({
 
   const { data: album } = await supabase
     .from("albums")
-    .select("id, title, status, size, share_slug")
+    .select("id, title, status, size, share_slug, brief")
     .eq("id", id)
     .maybeSingle<AlbumRow>();
 
@@ -49,16 +103,19 @@ export default async function AlbumPage({
 
   const size = isAlbumSize(album.size) ? album.size : DEFAULT_ALBUM_SIZE;
 
-  // head:true fetches the count without dragging 150 rows back for a number.
   const { count } = await supabase
     .from("photos")
     .select("id", { count: "exact", head: true })
     .eq("album_id", album.id);
 
-  const presentation =
-    album.status === "ready" || album.status === "ordered" || album.status === "shipped"
-      ? await loadAlbumPresentation(album.id, size)
-      : null;
+  // Legacy AI-era albums keep their template-rendered viewer.
+  const legacy =
+    album.status === "ready" ||
+    album.status === "ordered" ||
+    album.status === "shipped";
+  const presentation = legacy ? await loadAlbumPresentation(album.id, size) : null;
+
+  const proofData = hasProof(album.status) && !legacy ? await loadLatestProof(album.id) : null;
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-10 px-6 py-16">
@@ -77,17 +134,120 @@ export default async function AlbumPage({
       </header>
 
       {album.status === "uploading" ? (
-        <PhotoUploader albumId={album.id} existingCount={count ?? 0} />
+        <>
+          <PhotoUploader albumId={album.id} existingCount={count ?? 0} />
+          <FinishUploadingButton albumId={album.id} photoCount={count ?? 0} />
+        </>
       ) : null}
 
-      {album.status === "uploading" ||
-      album.status === "analyzing" ||
-      album.status === "generating" ? (
-        <AnalysisRunner
+      {album.status === "briefing" ? <BriefForm albumId={album.id} /> : null}
+
+      {album.status === "in_design" ? (
+        <section className="flex flex-col gap-4 rounded-md border border-stone p-6">
+          <h2 className="font-display text-3xl text-parchment">
+            Your designer is on it.
+          </h2>
+          <p className="max-w-md text-sm leading-relaxed text-pewter">
+            {count ?? 0} photos and your brief are with a designer now. Your
+            proof will appear right here — every page, ready to review.
+          </p>
+          {album.brief ? (
+            <p className="text-xs text-slate">{briefSummary(album.brief)}</p>
+          ) : null}
+        </section>
+      ) : null}
+
+      {album.status === "in_revision" && proofData ? (
+        <section className="flex flex-col gap-8">
+          <div className="flex flex-col gap-4 rounded-md border border-stone p-6">
+            <h2 className="font-display text-3xl text-parchment">
+              Your notes are in good hands.
+            </h2>
+            <p className="max-w-md text-sm leading-relaxed text-pewter">
+              Your designer is reworking the pages. The next round will appear
+              here.
+            </p>
+            {proofData.notes.length > 0 ? (
+              <ul className="flex flex-col gap-2 border-t border-stone pt-4">
+                {proofData.notes.map((note, i) => (
+                  <li key={i} className="text-xs leading-relaxed text-slate">
+                    <span className="text-pewter">
+                      {note.position
+                        ? `Pages ${note.position * 2 - 1}–${note.position * 2}: `
+                        : "The album: "}
+                    </span>
+                    {note.note}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+          <ProofViewer
+            albumId={album.id}
+            proofId={proofData.proof.id}
+            round={proofData.proof.round}
+            designerNote={proofData.proof.note}
+            pages={proofData.pages}
+            mode="readonly"
+          />
+        </section>
+      ) : null}
+
+      {album.status === "proof_ready" && proofData ? (
+        <ProofViewer
           albumId={album.id}
-          albumStatus={album.status}
-          photoCount={count ?? 0}
+          proofId={proofData.proof.id}
+          round={proofData.proof.round}
+          designerNote={proofData.proof.note}
+          pages={proofData.pages}
+          mode="review"
         />
+      ) : null}
+
+      {album.status === "approved" && proofData ? (
+        <section className="flex flex-col gap-10">
+          <div className="flex flex-col gap-5 rounded-md border border-pewter p-6">
+            <h2 className="font-display text-3xl text-parchment">
+              Approved. Make it real.
+            </h2>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-sm text-parchment">
+                  The printed album — {ALBUM_SIZE_SPECS[size].label}, hardcover,
+                  lay-flat
+                </span>
+                <span className="text-sm text-pewter">
+                  {formatPrice(ALBUM_SIZE_SPECS[size].priceCents)}
+                </span>
+              </div>
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-sm text-parchment">
+                  The print-ready files — print anywhere
+                </span>
+                <span className="text-sm text-pewter">
+                  {formatPrice(DOWNLOAD_PRICE_CENTS)}
+                </span>
+              </div>
+            </div>
+            <p className="text-xs text-slate">
+              Ordering opens soon. We&rsquo;ll email you the moment it does.
+            </p>
+          </div>
+          <ProofViewer
+            albumId={album.id}
+            proofId={proofData.proof.id}
+            round={proofData.proof.round}
+            designerNote={proofData.proof.note}
+            pages={proofData.pages}
+            mode="readonly"
+          />
+        </section>
+      ) : null}
+
+      {hasProof(album.status) && !legacy && !proofData ? (
+        <p className="text-sm text-pewter">
+          Your proof is on its way to this page. Check back in a moment.
+        </p>
       ) : null}
 
       {presentation ? (
@@ -97,15 +257,6 @@ export default async function AlbumPage({
             photoUrls={presentation.photoUrls}
             sizeSpec={presentation.sizeSpec}
           />
-
-          {album.status === "ready" ? (
-            <Link
-              href={`/albums/${album.id}/edit`}
-              className="self-start rounded-md bg-parchment px-6 py-3 text-sm text-ink transition-opacity hover:opacity-90"
-            >
-              Make it yours
-            </Link>
-          ) : null}
 
           <p className="text-xs text-slate">
             Share it:{" "}

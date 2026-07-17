@@ -7,7 +7,7 @@ import { GhostSpread } from "./ghost-spread";
  */
 
 const RAIL = ["T1", "M4", "D5", "M2"] as const;
-const CONTROLS = ["Swap a photo", "Reframe the crop", "Flip the spread", "Redesign this page"];
+const CONTROLS = ["Leather or linen", "A cameo, if you like", "A note on any page", "Revisions until it's right"];
 
 export function GhostEditor() {
   return (

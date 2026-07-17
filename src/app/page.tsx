@@ -8,6 +8,7 @@ import {
   ALBUM_SIZE_SPECS,
   BASE_SPREAD_COUNT,
   DEFAULT_ALBUM_SIZE,
+  DOWNLOAD_PRICE_CENTS,
   formatPrice,
 } from "@/lib/albums/sizes";
 import { createClient } from "@/lib/supabase/server";
@@ -20,21 +21,21 @@ const STEPS = [
   },
   {
     number: "02",
-    title: "We design every page.",
-    body: "Every photo is studied — the light, the moment, who's in it. Your album opens on a panorama and tells the day in order.",
+    title: "Tell us the look.",
+    body: "Leather or linen. A cameo, if you like. The foil for your names, the feel of the design. Five choices and a note.",
   },
   {
     number: "03",
-    title: "Make it yours.",
-    body: "Preview the whole book free. Swap photos, reframe crops, redesign a page. Order when it's exactly right.",
+    title: "A designer builds your book.",
+    body: "A professional album designer — a person, not a template — composes every page and returns a proof. Pin a note to any page; they rework it until it's right.",
   },
 ];
 
 const STATS = [
   { value: "15", label: "spreads — thirty lay-flat pages" },
-  { value: "23", label: "layouts, chosen page by page" },
-  { value: "250", label: "DPI print files, preview and print identical" },
-  { value: "$0", label: "until you order the book" },
+  { value: "$0", label: "to have your album designed" },
+  { value: "250", label: "DPI print files, proof and print identical" },
+  { value: "$99", label: "takes the files to any printer" },
 ];
 
 const SIZE_NOTES: Record<string, string> = {
@@ -46,19 +47,23 @@ const SIZE_NOTES: Record<string, string> = {
 const FAQ = [
   {
     q: "How many photos should we upload?",
-    a: "Around 150 — your favorites, not the whole gallery. Two hundred is the ceiling. If you can't choose, bring the maybes: when a photo doesn't make the book, we tell you why.",
+    a: "Around 150 — your favorites, not the whole gallery. Two hundred is the ceiling. If you can't choose, bring the maybes: your designer will.",
   },
   {
     q: "Do we have to design anything?",
-    a: "No. Your album arrives designed — every page composed, the day in order. Then it's yours: change as much or as little as you like.",
+    a: "No. A professional album designer builds your book from your photos and your brief — cover material, cameo, foil font, the feel. You never touch a template.",
   },
   {
     q: "What if we don't love a page?",
-    a: "Ask for a redesign and we take another pass — a different treatment of the same moment, up to three per page. Or swap, reframe, and reorder yourself. Every change is one undo away.",
+    a: "Pin a note to any page and send it back. Your designer reworks it and returns a new proof. There's no meter running on revisions.",
   },
   {
-    q: "Is the preview really free?",
-    a: "Yes. The whole book, every page, before you pay anything. You pay only when you order the printed album.",
+    q: "Is it really free to design?",
+    a: "Yes. The design and every proof cost nothing, and you see the whole book before paying. You pay only to print — or to take the files with you.",
+  },
+  {
+    q: "Can we print it somewhere else?",
+    a: "Yes. $99 buys the print-ready files — full resolution, no watermark, yours to take to any lab. Most couples let us print it; the files are for the rest.",
   },
   {
     q: "Are our photos private?",
@@ -103,8 +108,8 @@ export default async function Home() {
         </h1>
         <p className="mt-7 max-w-md text-sm leading-relaxed text-pewter sm:text-base">
           Your favorite wedding photos, designed into a printed album — every
-          page composed, every moment in order. Upload around 150. We&rsquo;ll
-          do the rest.
+          page composed, every moment in order. Upload around 150. A designer
+          does the rest.
         </p>
         <div className="mt-10 flex flex-col items-center gap-5 sm:flex-row">
           <Link
@@ -155,20 +160,21 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* The editor */}
+      {/* The proof */}
       <section className="mx-auto max-w-5xl px-6 py-24">
         <div className="grid items-center gap-12 lg:grid-cols-[5fr_6fr] lg:gap-16">
           <Reveal>
             <p className="text-xs uppercase tracking-[0.3em] text-slate">
-              The editor
+              The proof
             </p>
             <h2 className="mt-4 font-display text-4xl text-parchment sm:text-5xl">
-              Every page is yours to change.
+              A designer&rsquo;s eye. Your final say.
             </h2>
             <p className="mt-5 max-w-md text-sm leading-relaxed text-pewter">
-              Swap a photo, reframe a crop, try another layout — or ask us to
-              take another pass at a page, and tell us what it should lead
-              with. Everything saves itself. Everything undoes.
+              Your proof arrives page by page, with a note on what your
+              designer led with. Pin a note to any page — or the whole book —
+              and a new round comes back. Approve when it&rsquo;s exactly
+              right.
             </p>
             <blockquote className="mt-8 border-l border-stone pl-5">
               <p className="font-display text-xl italic leading-snug text-parchment">
@@ -177,7 +183,7 @@ export default async function Home() {
                 portraits.&rdquo;
               </p>
               <cite className="mt-3 block text-xs not-italic text-slate">
-                — the note that came with one couple&rsquo;s redesign
+                — a designer&rsquo;s note, round one
               </cite>
             </blockquote>
           </Reveal>
@@ -195,8 +201,9 @@ export default async function Home() {
           </h2>
           <p className="max-w-lg text-sm leading-relaxed text-stone sm:text-base">
             An album isn&rsquo;t everything that happened — it&rsquo;s
-            everything worth turning to again. When a photo doesn&rsquo;t make
-            the cut, we tell you why. One tap brings it back.
+            everything worth turning to again. Your designer chooses the
+            frames that earn a page — and swaps any of them back in the moment
+            you ask.
           </p>
         </Reveal>
       </section>
@@ -212,7 +219,9 @@ export default async function Home() {
           </h2>
           <p className="mt-4 max-w-lg text-sm leading-relaxed text-pewter">
             {BASE_SPREAD_COUNT} spreads of thick, lay-flat pages in a hardcover
-            — one flat price, whichever photos you bring.
+            — one flat price, whichever photos you bring. Designing is free.
+            Print with us, or take the print-ready files to any lab for{" "}
+            {formatPrice(DOWNLOAD_PRICE_CENTS)}.
           </p>
         </Reveal>
 

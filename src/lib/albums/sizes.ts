@@ -66,6 +66,10 @@ export function isAlbumSize(value: unknown): value is AlbumSize {
 /** Print resolution for the lab PDF (Miller's spec: full spreads, 250 DPI). */
 export const PRINT_DPI = 250;
 
+/** The designed album's print-ready files, for couples who print elsewhere.
+ * Cents, like every price. (Pivot 2026-07-17: design is free; files are not.) */
+export const DOWNLOAD_PRICE_CENTS = 9900;
+
 /** "$249" — whole dollars, since every price is whole dollars. Revisit if that changes. */
 export function formatPrice(cents: number): string {
   const dollars = cents / 100;
