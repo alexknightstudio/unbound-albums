@@ -71,7 +71,7 @@ Target: launch-ready in 4–6 weeks. Alex drives Claude Code 10+ hrs/week. Every
 
 **Goal: strangers can use it without Alex on standby.**
 
-1. Landing page at unboundalbums.com (the design already exists — hero "Your love story, *unbound.*", problem stats, how-it-works, album showcase now using REAL spreads from beta albums, pricing, FAQ).
+1. Landing page at unboundalbums.com — **SITE_SPEC.md is the source of truth** for the marketing site: structure (8 sections + nav + footer), section-by-section copy, imagery and photography direction, motion, and voice. Where the spec's numbers drift from locked decisions (it still shows the pre-2026-07-16 lineup — 8×8/$149, 30 spreads — and "designed in minutes" timing that predates the 1–3 day studio-review promise), CLAUDE.md and `src/lib/albums/sizes.ts` win; adapt the copy at build time, don't propagate stale numbers.
 2. Mobile pass on every flow. Empty states, error states, loading states — all in brand voice.
 3. Onboarding guidance: "How to pick your 150" helper (export from Pic-Time/photographer galleries).
 4. Analytics (PostHog or Vercel Analytics): funnel events — signup, upload complete, generation complete, preview viewed, editor used, checkout started, paid.

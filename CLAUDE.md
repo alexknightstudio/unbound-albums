@@ -10,8 +10,14 @@ The founder is Alex Knight, a professional wedding photographer. He is technical
 
 **PIVOT (2026-07-17): human designers, not client-facing AI.** Alex judged AI design output not yet good enough to sell. Hired designers design every album in external pro tools and upload finished spreads. The AI pipeline (analysis, layout engine, editor, steerable regen) is DORMANT, not deleted — kept as possible future internal designer tooling. Do not route couples through it.
 
+**Studio-review model (2026-07-17, later same day — refines the pivot):**
+- Every album is designed within **1–3 days**, with a studio review step before the couple ever sees a page: production flow **generating → review → ready**.
+- Implementation note: the shipped DB status machine still uses the earlier naming (uploading → briefing → in_design → proof_ready ⇄ in_revision → approved); `generating` and `ready` exist in the enum, `review` does not yet. Align the machine to the studio-review flow the next time the flow is touched — do not start that rework from a marketing task.
+- **The free-design hook is core positioning:** "design is free, pay only to print." Every page of the site and app reinforces it.
+- **The preview is a shareable 3D flip-through** — that is what couples see and share for free. Print-quality files ship ONLY with paid orders (a print order, or the $99 file download). Nothing print-resolution leaves unpaid.
+
 - Designed-for-you: a human designer creates every album; couples never design
-- Client flow: upload → brief (style questionnaire) → in_design (designer queue) → proof_ready → revision loop → approved → print order or file download
+- Client flow: upload → brief (style questionnaire) → studio designs & reviews → couple reviews the flip-through proof → revision notes → approve → print order or file download
 - Couples' only controls: the brief, per-page revision notes, approve. No client editor.
 - Revisions: no hard cap in v1 (small volume); designer discretion
 - Free design; monetization is the print order OR a $99 print-ready file download (DOWNLOAD_PRICE_CENTS in src/lib/albums/sizes.ts). Files are watermark-free, full-res, delivered only after payment.
