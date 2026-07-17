@@ -13,15 +13,17 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="w-full rounded-md bg-parchment px-6 py-3.5 text-sm text-ink transition-opacity hover:opacity-90 disabled:opacity-50"
+      className="mt-3 w-full rounded-md bg-parchment px-7 py-[18px] text-xs font-medium uppercase tracking-[2.5px] text-ink transition-all hover:bg-white hover:shadow-[0_4px_20px_rgba(255,255,255,0.15)] active:scale-[0.98] disabled:opacity-50"
     >
       {pending ? "One moment." : "Continue — add your photos"}
     </button>
   );
 }
 
+const LABEL =
+  "text-xs font-medium uppercase tracking-[2.5px] text-pewter";
 const FIELD =
-  "w-full rounded-md border border-stone bg-charcoal px-4 py-3.5 text-base text-parchment placeholder:text-slate focus:border-pewter focus:outline-none";
+  "w-full rounded-md border border-stone bg-charcoal px-[18px] py-[15px] text-base tracking-[0.3px] text-parchment transition-colors placeholder:text-slate hover:border-[#3B3A36] focus:border-white/45 focus:shadow-[0_0_0_3px_rgba(255,255,255,0.12)] focus:outline-none [color-scheme:dark]";
 
 /** The start of everything: who, when, where. Size and style come later —
  * that's the customizations step, after the photos are in. */
@@ -29,9 +31,9 @@ export function NewAlbumForm() {
   const [state, formAction] = useActionState(createAlbum, INITIAL);
 
   return (
-    <form action={formAction} className="flex w-full flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <label htmlFor="title" className="text-sm text-pewter">
+    <form action={formAction} className="flex w-full flex-col gap-7">
+      <div className="flex flex-col gap-2.5">
+        <label htmlFor="title" className={LABEL}>
           Your names
         </label>
         <input
@@ -46,8 +48,8 @@ export function NewAlbumForm() {
         />
       </div>
 
-      <div className="flex flex-col gap-2">
-        <label htmlFor="event_date" className="text-sm text-pewter">
+      <div className="flex flex-col gap-2.5">
+        <label htmlFor="event_date" className={LABEL}>
           Your wedding date
         </label>
         <input
@@ -55,12 +57,12 @@ export function NewAlbumForm() {
           name="event_date"
           type="date"
           required
-          className={`${FIELD} [color-scheme:dark]`}
+          className={FIELD}
         />
       </div>
 
-      <div className="flex flex-col gap-2">
-        <label htmlFor="venue" className="text-sm text-pewter">
+      <div className="flex flex-col gap-2.5">
+        <label htmlFor="venue" className={LABEL}>
           Venue or location
         </label>
         <input
@@ -75,7 +77,7 @@ export function NewAlbumForm() {
         />
       </div>
 
-      <div className="mt-2 flex flex-col gap-3">
+      <div className="flex flex-col gap-3">
         <SubmitButton />
         {state.status === "error" && (
           <p role="alert" className="text-sm text-pewter">

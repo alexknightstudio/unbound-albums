@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -6,7 +7,7 @@ import { ALBUM_SIZE_SPECS, type AlbumSize } from "@/lib/albums/sizes";
 import { createClient } from "@/lib/supabase/server";
 
 import { signOut } from "./actions";
-import { NewAlbumForm } from "./new-album-form";
+import { StartAlbumSection } from "./start-album-section";
 
 type AlbumRow = {
   id: string;
@@ -37,55 +38,69 @@ export default async function AlbumsPage() {
   const existing = albums ?? [];
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-14 px-6 py-16">
-      <header className="flex flex-col gap-3">
-        <h1 className="font-display text-5xl text-parchment">
-          {existing.length > 0 ? "Your albums." : "Start your album."}
-        </h1>
-        <p className="text-sm text-pewter">
-          {existing.length > 0
-            ? "Around 150 photos. A designer does the rest."
-            : "Who, when, where — then your photos. A designer does the rest."}
-        </p>
+    <div className="flex flex-1 flex-col">
+      <header className="px-6 py-8 sm:px-12">
+        <Link href="/" aria-label="Unbound — home" className="inline-block">
+          <img
+            src="/unbound-wordmark-white.png"
+            alt="UNBOUND"
+            className="block h-[15px] w-auto"
+          />
+        </Link>
       </header>
 
-      {existing.length > 0 && (
-        <ul className="flex flex-col gap-px overflow-hidden rounded-md border border-stone">
-          {existing.map((album) => (
-            <li key={album.id}>
-              <Link
-                href={`/albums/${album.id}`}
-                className="flex items-center justify-between gap-4 bg-charcoal px-5 py-4 transition-colors hover:bg-stone"
-              >
-                <span className="flex flex-col gap-1">
-                  <span className="text-base text-parchment">{album.title}</span>
-                  <span className="text-xs text-slate">
-                    {ALBUM_SIZE_SPECS[album.size].label} ·{" "}
-                    {statusCopy(album.status)}
-                  </span>
-                </span>
-                <span aria-hidden className="text-pewter">
-                  →
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+      <main className="mx-auto flex w-full max-w-[1160px] flex-1 flex-col gap-16 px-6 pb-24 pt-8 sm:px-12">
+        {existing.length > 0 ? (
+          <section className="flex max-w-lg flex-col gap-6">
+            <h1 className="font-display text-4xl text-parchment">
+              Your albums.
+            </h1>
+            <ul className="flex flex-col gap-px overflow-hidden rounded-md border border-stone">
+              {existing.map((album) => (
+                <li key={album.id}>
+                  <Link
+                    href={`/albums/${album.id}`}
+                    className="flex items-center justify-between gap-4 bg-charcoal px-5 py-4 transition-colors hover:bg-stone"
+                  >
+                    <span className="flex flex-col gap-1">
+                      <span className="text-base text-parchment">
+                        {album.title}
+                      </span>
+                      <span className="text-xs text-slate">
+                        {ALBUM_SIZE_SPECS[album.size].label} ·{" "}
+                        {statusCopy(album.status)}
+                      </span>
+                    </span>
+                    <span aria-hidden className="text-pewter">
+                      →
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
-      <NewAlbumForm />
+        {existing.length > 0 ? (
+          <div className="border-t border-stone pt-16">
+            <StartAlbumSection heading="Start another." />
+          </div>
+        ) : (
+          <StartAlbumSection heading="Start your album." />
+        )}
 
-      <footer className="flex items-center justify-between border-t border-stone pt-6">
-        <span className="text-xs text-slate">{user.email}</span>
-        <form action={signOut}>
-          <button
-            type="submit"
-            className="text-xs text-slate transition-colors hover:text-pewter"
-          >
-            Sign out
-          </button>
-        </form>
-      </footer>
-    </main>
+        <footer className="mt-auto flex items-center justify-between border-t border-stone pt-6">
+          <span className="text-xs text-slate">{user.email}</span>
+          <form action={signOut}>
+            <button
+              type="submit"
+              className="text-xs text-slate transition-colors hover:text-pewter"
+            >
+              Sign out
+            </button>
+          </form>
+        </footer>
+      </main>
+    </div>
   );
 }
