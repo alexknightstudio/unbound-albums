@@ -76,6 +76,4 @@ Auto-build: the dormant AI layout engine *is* SmartAlbums' headline feature (met
 
 ## 7. Open decisions for Alex
 
-1. **Approve the canvas-free architecture** (DOM/CSS + SVG overlay, Konva as escape hatch) — this locks the technical direction.
-2. **Approve print-pipeline-first sequencing** (D1 before any editor UI) — it converts the pivot's missing monetization pieces ($99 files, print orders) into the first deliverable.
-3. **Scope commitment: in-house first** — the tool replaces your designers' SmartAlbums seats and closes the studio loop (D2–D4) before any B2B packaging; free-form frames deferred until template-mode demonstrably limits the studio.
+**APPROVED in full, 2026-07-20:** canvas-free architecture ✓ · print-pipeline-first ✓ · in-house-first scope ✓.

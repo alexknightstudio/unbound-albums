@@ -83,6 +83,4 @@ Margin math at realistic ~40% cap utilization: Solo ~79%, Studio ~72%, Pro ~68% 
 
 ## 8. Open decisions for Alex
 
-1. **Approve the R2 architecture** (vs. staying all-Supabase for v1 speed at ~2.2× the marginal cost and a punitive ZIP-download exposure). Recommendation: R2 — the egress economics *are* the product.
-2. **Approve pricing + the two promises** — "unlimited traffic, never unlimited storage" and the no-deletion policy (a ToS/legal commitment, not just copy). Numbers are placeholders in config until beta data.
-3. **Brand & sequencing** — "Unbound Galleries" under the same brand and domain, or separate? And does hosting v1 ship before or after the album product's Stripe work (they share the billing build)?
+**APPROVED in full, 2026-07-20:** R2 architecture ✓ · pricing + both promises ✓ · same Unbound brand ✓ (sequencing vs Stripe: shared billing build, order decided at build time).

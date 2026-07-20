@@ -30,6 +30,10 @@ The founder is Alex Knight, a professional wedding photographer. He is technical
 - Pricing v1: 10×10 $249 · 12×12 $279 · 11×14 $299 (placeholder pending DreamBooks economics; easily configurable in src/lib/albums/sizes.ts)
 - Print spec (Miller's): full-spread files (page width × 2) at 250 DPI, no bleed, 0.5" safe zone from trim edges, no faces on the centerfold. Albums start AND end with full panorama spreads — there are no single first/last pages. Designers must deliver to this spec.
 
+**Approved product directions (2026-07-20, both specs approved in full by Alex):**
+- **Unbound Galleries (HOSTING_SPEC.md)**: B2B client-gallery hosting under the SAME Unbound brand. Cloudflare R2 for gallery files (zero egress) + Cloudflare Images derivatives; Supabase stays auth/db; file access via short-TTL signed URLs in app code (not RLS). Pricing: Solo $19/500GB · Studio $36/1.5TB/3 seats · Pro $60/3TB, overage $6/100GB (configurable). Two locked promises: unlimited traffic, never "unlimited storage"; and NEVER silently delete a gallery (non-payment freezes uploads, never destroys data) — this is a ToS commitment.
+- **Album Designer (DESIGNER_SPEC.md)**: canvas-free architecture — DOM/CSS frames + SVG overlay, dnd-kit, DOM text, normalized 0–1 geometry; Konva is the documented escape hatch, Fabric rejected. Print parity = the same SpreadRenderer mounted at print pixels in Puppeteer, captured with page.screenshot() (NOT page.pdf — it ignores deviceScaleFactor). Sequencing: print pipeline FIRST (it unlocks the $99 download and print orders), then staff designer workspace, then pro layout tools, then in-app proof delivery. In-house designers are the first users (replacing SmartAlbums seats); B2B packaging and free-form frames wait.
+
 ## Stack
 
 - **Next.js (App Router) + TypeScript + Tailwind CSS**, deployed on Vercel
