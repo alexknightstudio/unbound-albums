@@ -4,6 +4,7 @@ import {
   CreateMultipartUploadCommand,
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
   UploadPartCommand,
@@ -48,6 +49,7 @@ function r2(): S3Client {
     client = new S3Client({
       region: "auto",
       endpoint: `https://${required("R2_ACCOUNT_ID")}.r2.cloudflarestorage.com`,
+      forcePathStyle: true,
       credentials: {
         accessKeyId: required("R2_ACCESS_KEY_ID"),
         secretAccessKey: required("R2_SECRET_ACCESS_KEY"),
@@ -135,6 +137,15 @@ export async function abortMultipartUpload(key: string, uploadId: string) {
       UploadId: uploadId,
     }),
   );
+}
+
+export async function objectExists(key: string): Promise<boolean> {
+  try {
+    await r2().send(new HeadObjectCommand({ Bucket: bucket(), Key: key }));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function getObjectBytes(key: string): Promise<Buffer> {

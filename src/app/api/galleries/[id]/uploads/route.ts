@@ -9,6 +9,7 @@ import {
   createMultipartUpload,
   galleryKeys,
   getObjectBytes,
+  objectExists,
   putObject,
   r2Configured,
   signedPartUrl,
@@ -129,7 +130,14 @@ export async function POST(
         if (!ownKey(body.key) || !Array.isArray(body.parts) || body.parts.length === 0) {
           return NextResponse.json({ error: "Bad request." }, { status: 400 });
         }
-        await completeMultipartUpload(body.key, body.uploadId, body.parts);
+        // Idempotent: a retried complete (row insert failed last time, or the
+        // response was lost) finds the multipart already finalized — if the
+        // object exists, carry on to the metadata instead of failing.
+        try {
+          await completeMultipartUpload(body.key, body.uploadId, body.parts);
+        } catch (error) {
+          if (!(await objectExists(body.key))) throw error;
+        }
 
         // Thumb: pull the original back (R2 egress is free), downscale once,
         // store beside it. The grid never loads originals.
@@ -143,32 +151,47 @@ export async function POST(
         await putObject(thumbKey, thumb, "image/jpeg");
         const meta = await sharp(original).metadata();
 
-        const { count } = await supabase
+        // A retried complete may already have its row.
+        const { data: existing } = await supabase
           .from("gallery_photos")
-          .select("id", { count: "exact", head: true })
-          .eq("gallery_id", galleryId);
-        const { data: row, error } = await supabase
-          .from("gallery_photos")
-          .insert({
-            id: body.photoId,
-            gallery_id: galleryId,
-            r2_key: body.key,
-            thumb_key: thumbKey,
-            filename: String(body.filename).slice(0, 255),
-            size_bytes: body.size,
-            width: meta.width ?? info.width,
-            height: meta.height ?? info.height,
-            position: (count ?? 0) + 1,
-          })
           .select("id")
+          .eq("id", body.photoId)
           .maybeSingle();
-        if (error || !row) {
-          return NextResponse.json(
-            { error: "Uploaded, but could not record the photo. Retry the file." },
-            { status: 500 },
-          );
+        if (existing) return NextResponse.json({ ok: true, photoId: existing.id });
+
+        // Concurrent files race for the next position — the unique
+        // (gallery_id, position) constraint referees; losers recount and retry.
+        for (let attempt = 0; attempt < 5; attempt++) {
+          const { data: last } = await supabase
+            .from("gallery_photos")
+            .select("position")
+            .eq("gallery_id", galleryId)
+            .order("position", { ascending: false })
+            .limit(1)
+            .maybeSingle<{ position: number }>();
+          const { data: row, error } = await supabase
+            .from("gallery_photos")
+            .insert({
+              id: body.photoId,
+              gallery_id: galleryId,
+              r2_key: body.key,
+              thumb_key: thumbKey,
+              filename: String(body.filename).slice(0, 255),
+              size_bytes: body.size,
+              width: meta.width ?? info.width,
+              height: meta.height ?? info.height,
+              position: (last?.position ?? 0) + 1,
+            })
+            .select("id")
+            .maybeSingle();
+          if (row) return NextResponse.json({ ok: true, photoId: row.id });
+          // 23505 = unique_violation: someone took the position; try again.
+          if (error?.code !== "23505") break;
         }
-        return NextResponse.json({ ok: true, photoId: row.id });
+        return NextResponse.json(
+          { error: "Uploaded, but could not record the photo. Retry the file." },
+          { status: 500 },
+        );
       }
 
       case "abort": {

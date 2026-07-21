@@ -143,7 +143,7 @@ export default async function PublicGalleryPage({
       </p>
     ) : (
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-        {urls.map((photo) => (
+        {urls.map((photo, i) => (
           <li key={photo.id} className="overflow-hidden rounded-sm">
             <a
               href={photo.full}
@@ -155,7 +155,8 @@ export default async function PublicGalleryPage({
                 <img
                   src={photo.thumb}
                   alt=""
-                  loading="lazy"
+                  // First screenful loads immediately; the long tail stays lazy.
+                  loading={i < 8 ? "eager" : "lazy"}
                   className="aspect-square w-full object-cover"
                 />
               ) : (
