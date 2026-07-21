@@ -6,6 +6,7 @@ import { r2Configured, signedGetUrl } from "@/lib/galleries/r2";
 import { createClient } from "@/lib/supabase/server";
 
 import { GalleryUploader } from "./gallery-uploader";
+import { VisibilityControl } from "./visibility-control";
 
 type GalleryRow = {
   id: string;
@@ -13,6 +14,7 @@ type GalleryRow = {
   slug: string;
   event_date: string | null;
   password_hash: string | null;
+  visibility: string;
 };
 
 type PhotoRow = {
@@ -37,10 +39,16 @@ export default async function GalleryManagePage({
   // RLS: only the owning photographer sees this row.
   const { data: gallery } = await supabase
     .from("galleries")
-    .select("id, title, slug, event_date, password_hash")
+    .select("id, title, slug, event_date, password_hash, visibility")
     .eq("id", id)
     .maybeSingle<GalleryRow>();
   if (!gallery) notFound();
+
+  const { data: account } = await supabase
+    .from("accounts")
+    .select("handle")
+    .eq("user_id", user.id)
+    .maybeSingle<{ handle: string | null }>();
 
   const { data: photos } = await supabase
     .from("gallery_photos")
@@ -74,8 +82,11 @@ export default async function GalleryManagePage({
       <header className="flex flex-col gap-3">
         <h1 className="text-3xl font-semibold tracking-tight text-heading">{gallery.title}</h1>
         <p className="text-sm text-muted">
-          {rows.length} {rows.length === 1 ? "photo" : "photos"}
-          {gallery.password_hash ? " · password protected" : " · link-only"}
+          {rows.length} {rows.length === 1 ? "photo" : "photos"} ·{" "}
+          {gallery.visibility}
+          {gallery.visibility === "private" && gallery.password_hash
+            ? " · password"
+            : ""}
         </p>
         <p className="text-sm text-muted">
           Client link:{" "}
@@ -87,6 +98,12 @@ export default async function GalleryManagePage({
           </Link>
         </p>
       </header>
+
+      <VisibilityControl
+        galleryId={gallery.id}
+        visibility={gallery.visibility}
+        handle={account?.handle ?? null}
+      />
 
       {storageReady ? (
         <GalleryUploader
