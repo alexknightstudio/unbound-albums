@@ -23,7 +23,8 @@
  * from here — one source of truth for the contract.
  */
 
-import type { Orientation } from "@/lib/photos/thumbnails";
+/** Photo orientation — engine-local; the engine imports nothing outside itself. */
+export type Orientation = "portrait" | "landscape" | "square";
 
 export type SlotAccepts = Orientation | "any";
 

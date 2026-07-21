@@ -14,7 +14,7 @@ import {
   slotAcceptsPhoto,
 } from "./templates";
 
-import type { Orientation } from "@/lib/photos/thumbnails";
+import type { Orientation } from "./templates";
 
 /** The minimum the engine needs to know about a photo. */
 export type EnginePhoto = {

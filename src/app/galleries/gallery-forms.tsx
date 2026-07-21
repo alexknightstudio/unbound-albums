@@ -3,11 +3,7 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
-import {
-  activatePhotographerAccount,
-  createGallery,
-  type GalleryActionState,
-} from "./actions";
+import { createGallery, type GalleryActionState } from "./actions";
 
 const IDLE: GalleryActionState = { status: "idle" };
 
@@ -34,30 +30,6 @@ function ErrorLine({ state }: { state: GalleryActionState }) {
     <p role="alert" className="text-sm text-danger">
       {state.message}
     </p>
-  );
-}
-
-export function ActivateForm() {
-  const [state, action] = useActionState(activatePhotographerAccount, IDLE);
-  return (
-    <form action={action} className="flex w-full max-w-md flex-col gap-5">
-      <div className="flex flex-col gap-2.5">
-        <label htmlFor="business_name" className={LABEL}>
-          Your studio name
-        </label>
-        <input
-          id="business_name"
-          name="business_name"
-          type="text"
-          required
-          maxLength={120}
-          className={FIELD}
-          placeholder="Alex Knight Studio"
-        />
-      </div>
-      <Submit label="Open your gallery space" />
-      <ErrorLine state={state} />
-    </form>
   );
 }
 

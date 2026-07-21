@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase/env";
 
 /** Prefixes that require a signed-in couple. */
-const PROTECTED = ["/albums", "/galleries", "/design"];
+const PROTECTED = ["/galleries", "/design"];
 
 /**
  * Runs before every page render: refreshes the auth session and writes the

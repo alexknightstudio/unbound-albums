@@ -26,7 +26,7 @@ type GalleryRow = {
   event_date: string | null;
   password_hash: string | null;
   expires_at: string | null;
-  photographer_id: string;
+  owner_id: string;
 };
 
 export async function generateMetadata({
@@ -57,17 +57,17 @@ export default async function PublicGalleryPage({
 
   const { data: gallery } = await admin
     .from("galleries")
-    .select("id, title, event_date, password_hash, expires_at, photographer_id")
+    .select("id, title, event_date, password_hash, expires_at, owner_id")
     .eq("slug", slug)
     .maybeSingle<GalleryRow>();
   if (!gallery) notFound();
   if (gallery.expires_at && new Date(gallery.expires_at) < new Date()) notFound();
 
   const { data: account } = await admin
-    .from("photographer_accounts")
-    .select("business_name")
-    .eq("user_id", gallery.photographer_id)
-    .maybeSingle<{ business_name: string }>();
+    .from("accounts")
+    .select("display_name")
+    .eq("user_id", gallery.owner_id)
+    .maybeSingle<{ display_name: string | null }>();
 
   let unlocked = !gallery.password_hash;
   if (!unlocked) {
@@ -80,9 +80,9 @@ export default async function PublicGalleryPage({
     <main className="flex min-h-svh w-full flex-1 flex-col bg-viewer px-6 py-14 text-parchment sm:px-10">
       <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col">
       <header className="flex flex-col items-center gap-2 pb-12 text-center">
-        {account ? (
+        {account?.display_name ? (
           <p className="text-xs uppercase tracking-[0.3em] text-slate">
-            {account.business_name}
+            {account.display_name}
           </p>
         ) : null}
         <h1 className="font-display text-4xl text-parchment sm:text-5xl">

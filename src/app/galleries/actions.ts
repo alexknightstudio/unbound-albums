@@ -2,7 +2,6 @@
 
 import { randomUUID } from "node:crypto";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { hashGalleryPassword } from "@/lib/galleries/access";
@@ -14,34 +13,6 @@ export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/login");
-}
-
-/** Turn a signed-in user into a photographer (the hosting product's account). */
-export async function activatePhotographerAccount(
-  _prev: GalleryActionState,
-  formData: FormData,
-): Promise<GalleryActionState> {
-  const businessName = String(formData.get("business_name") ?? "").trim();
-  if (!businessName) {
-    return { status: "error", message: "Tell us your studio's name." };
-  }
-  if (businessName.length > 120) {
-    return { status: "error", message: "Keep the name under 120 characters." };
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { error } = await supabase
-    .from("photographer_accounts")
-    .upsert({ user_id: user.id, business_name: businessName });
-  if (error) return { status: "error", message: "Could not save. Try again." };
-
-  revalidatePath("/galleries");
-  return { status: "idle" };
 }
 
 export async function createGallery(
@@ -70,7 +41,7 @@ export async function createGallery(
   const { data, error } = await supabase
     .from("galleries")
     .insert({
-      photographer_id: user.id,
+      owner_id: user.id,
       title,
       slug: randomUUID().replaceAll("-", ""),
       event_date: eventDate || null,
