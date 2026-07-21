@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
@@ -8,6 +7,8 @@ import {
 } from "@/lib/galleries/access";
 import { r2Configured, signedGetUrl } from "@/lib/galleries/r2";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+import { PhotoGrid, type GalleryPhoto } from "@/components/gallery/photo-grid";
 
 import { GalleryUnlock } from "./gallery-unlock";
 
@@ -155,33 +156,50 @@ export default async function GalleryPage({
     );
   }
 
-  const { data: photos } = await admin
+  const { data: photoRows } = await admin
     .from("gallery_photos")
-    .select("id, r2_key, thumb_key, position")
+    .select("id, r2_key, thumb_key, position, width, height, blurhash, credit")
     .eq("gallery_id", gallery.id)
     .order("position", { ascending: true })
     .returns<
-      Array<{ id: string; r2_key: string; thumb_key: string | null; position: number }>
+      Array<{
+        id: string;
+        r2_key: string;
+        thumb_key: string | null;
+        position: number;
+        width: number | null;
+        height: number | null;
+        blurhash: string | null;
+        credit: string | null;
+      }>
     >();
-  const rows = photos ?? [];
+  const rows = photoRows ?? [];
 
   // Private: per-request signed URLs (expiring, behind the gate).
   // Unlisted/public: stable /i/ URLs — cacheable, shareable, re-checked
   // against visibility on every image request.
-  const urls =
+  const photos: GalleryPhoto[] =
     gallery.visibility === "private"
       ? await Promise.all(
           rows.map(async (p) => ({
             id: p.id,
-            thumb: p.thumb_key ? await signedGetUrl(p.thumb_key) : null,
+            src: p.thumb_key ? await signedGetUrl(p.thumb_key) : await signedGetUrl(p.r2_key),
             full: await signedGetUrl(p.r2_key),
+            width: p.width ?? 1600,
+            height: p.height ?? 1067,
+            blurhash: p.blurhash,
           })),
         )
       : rows.map((p) => ({
           id: p.id,
-          thumb: `/i/${p.id}`,
+          src: `/i/${p.id}`,
           full: `/i/${p.id}?full=1`,
+          width: p.width ?? 1600,
+          height: p.height ?? 1067,
+          blurhash: p.blurhash,
         }));
+
+  const credits = [...new Set(rows.map((p) => p.credit).filter(Boolean))] as string[];
 
   return shell(
     rows.length === 0 ? (
@@ -189,29 +207,16 @@ export default async function GalleryPage({
         Photos are on their way. Check back soon.
       </p>
     ) : (
-      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-        {urls.map((photo, i) => (
-          <li key={photo.id} className="overflow-hidden rounded-sm">
-            <a
-              href={photo.full}
-              target="_blank"
-              rel="noreferrer"
-              className="block transition-opacity hover:opacity-90"
-            >
-              {photo.thumb ? (
-                <img
-                  src={photo.thumb}
-                  alt=""
-                  loading={i < 8 ? "eager" : "lazy"}
-                  className="aspect-square w-full object-cover"
-                />
-              ) : (
-                <span className="block aspect-square w-full bg-charcoal" />
-              )}
-            </a>
-          </li>
-        ))}
-      </ul>
+      <>
+        <PhotoGrid photos={photos} />
+        {credits.length > 0 ? (
+          <footer className="mt-10 border-t border-white/10 pt-5">
+            <p className="text-xs leading-relaxed text-slate">
+              Photographs: {credits.join(" · ")}
+            </p>
+          </footer>
+        ) : null}
+      </>
     ),
   );
 }

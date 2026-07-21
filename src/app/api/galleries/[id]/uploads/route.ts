@@ -14,6 +14,7 @@ import {
   r2Configured,
   signedPartUrl,
 } from "@/lib/galleries/r2";
+import { readIngestMetadata } from "@/lib/galleries/ingest";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -149,7 +150,10 @@ export async function POST(
           .jpeg({ quality: 82 })
           .toBuffer({ resolveWithObject: true });
         await putObject(thumbKey, thumb, "image/jpeg");
-        const meta = await sharp(original).metadata();
+
+        // Display metadata: dimensions drive the justified layout, blurhash
+        // paints instantly, taken_at orders the story (PLATFORM_SPEC §9).
+        const ingest = await readIngestMetadata(original);
 
         // A retried complete may already have its row.
         const { data: existing } = await supabase
@@ -178,8 +182,10 @@ export async function POST(
               thumb_key: thumbKey,
               filename: String(body.filename).slice(0, 255),
               size_bytes: body.size,
-              width: meta.width ?? info.width,
-              height: meta.height ?? info.height,
+              width: ingest.width || info.width,
+              height: ingest.height || info.height,
+              blurhash: ingest.blurhash,
+              taken_at: ingest.takenAt,
               position: (last?.position ?? 0) + 1,
             })
             .select("id")

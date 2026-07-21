@@ -13,12 +13,12 @@ import { createClient } from "@/lib/supabase/server";
 
 const VALUE_PROPS = [
   {
-    title: "Beautiful by default",
-    body: "Fast, editorial galleries with full-screen viewing that feels native on a phone. Your photos do the talking — the interface stays out of the way.",
+    title: "Beautiful without the work",
+    body: "Drop in a hundred holiday photos and get a gallery that looks composed, not dumped. Full-screen viewing that feels native on a phone.",
   },
   {
     title: "Private or public — per gallery",
-    body: "Deliver a password-protected gallery to a client, or publish a portfolio anyone can find. One home for both.",
+    body: "A password-protected gallery for a client. A link for your family. A public page anyone can find. Same account, your choice each time.",
   },
   {
     title: "Traffic is free, forever",
@@ -100,13 +100,13 @@ export default async function Home() {
       <section className="mx-auto max-w-6xl px-6 pb-20 pt-16 sm:pb-28 sm:pt-24">
         <div className="mx-auto max-w-2xl text-center">
           <h1 className="text-4xl font-semibold tracking-tight text-heading sm:text-6xl [text-wrap:balance]">
-            Your photos, hosted beautifully.
+            Your photos, <span className="text-accent">unbound</span>.
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-muted sm:text-lg [text-wrap:pretty]">
-            Upload thousands of photos and share them as fast, gorgeous
-            galleries — private for clients, public for the world. Unlimited
-            traffic and downloads, and nothing is ever deleted without your
-            say-so.
+            A week in Lisbon or four hundred frames from a wedding — upload
+            them and get a gallery worth sending. Private for the people who
+            matter, public when you want the world. Unlimited traffic and
+            downloads, and nothing is ever deleted without your say-so.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link
