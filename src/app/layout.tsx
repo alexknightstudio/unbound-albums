@@ -1,34 +1,24 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Jost } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
-const cormorant = Cormorant_Garamond({
-  variable: "--font-cormorant",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
-  // 300 for large display only; 400/500 for smaller serif moments (the
-  // readability rule: never Light below 36px). Italics are the tagline voice.
-  weight: ["300", "400", "500"],
-  style: ["normal", "italic"],
-  display: "swap",
-});
-
-const jost = Jost({
-  variable: "--font-jost",
-  subsets: ["latin"],
-  weight: ["400", "500"],
+  weight: ["400", "500", "600"],
   display: "swap",
 });
 
 export const metadata: Metadata = {
   title: {
-    default: "Unbound Albums — Your love story, unbound.",
-    template: "%s · Unbound Albums",
+    default: "Unbound — Your photos, hosted beautifully",
+    template: "%s · Unbound",
   },
   description:
-    "Your favorite wedding photos, designed into a printed album. Upload around 150. We'll do the rest.",
+    "Upload thousands of photos and share them as fast, beautiful galleries — private or public. Unlimited traffic, unlimited downloads, and nothing is ever deleted without your say-so.",
   metadataBase: new URL("https://unboundalbums.com"),
   openGraph: {
-    siteName: "Unbound Albums",
+    siteName: "Unbound",
     type: "website",
   },
 };
@@ -39,11 +29,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${cormorant.variable} ${jost.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en" className={`${inter.variable} h-full antialiased`}>
+      <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );
 }

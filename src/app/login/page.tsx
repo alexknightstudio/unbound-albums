@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 
 import { LoginForm } from "./login-form";
@@ -15,23 +16,29 @@ export default async function LoginPage({
   const { error } = await searchParams;
 
   return (
-    <main className="relative flex flex-1 flex-col items-center justify-center px-6 py-16">
+    <main className="relative flex flex-1 flex-col items-center justify-center bg-canvas px-6 py-16">
       <Link
         href="/"
-        className="absolute left-6 top-6 text-xs tracking-[0.35em] text-parchment sm:left-10"
-        aria-label="Unbound Albums home"
+        className="absolute left-6 top-6 sm:left-10"
+        aria-label="Unbound — home"
       >
-        UNBOUND
+        <img src="/unbound-wordmark-ink.png" alt="Unbound" className="h-3.5 w-auto" />
       </Link>
-      <div className="flex w-full max-w-sm flex-col gap-10">
-        <div className="flex flex-col gap-3 text-center">
-          <h1 className="font-display text-4xl text-parchment">Sign in</h1>
-          <p className="text-sm text-pewter">
-            No password. We&rsquo;ll email you a link.
+
+      <div className="w-full max-w-sm rounded-xl border border-line bg-neutral-0 p-8 shadow-sm">
+        <div className="flex flex-col gap-2 text-center">
+          <h1 className="text-2xl font-semibold tracking-tight text-heading">
+            Sign in
+          </h1>
+          <p className="text-sm text-muted">
+            No password. We&rsquo;ll email you a link — new here, the same link
+            signs you up.
           </p>
         </div>
 
-        <LoginForm linkError={error ? LINK_ERRORS[error] : undefined} />
+        <div className="mt-8">
+          <LoginForm linkError={error ? LINK_ERRORS[error] : undefined} />
+        </div>
       </div>
     </main>
   );

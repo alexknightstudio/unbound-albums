@@ -1,14 +1,15 @@
-/* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { AppNav } from "@/components/app/app-nav";
 import { createClient } from "@/lib/supabase/server";
 
 import { ActivateForm, NewGalleryForm } from "./gallery-forms";
 
 /**
- * The photographer's home — Unbound Galleries (HOSTING_SPEC.md).
- * First visit activates the account; after that it's galleries + new.
+ * The dashboard — tokens v1. Still reads photographer_accounts until the P0
+ * accounts migration is applied (blocked on DB access; see DECISIONS.md),
+ * then this swaps to `accounts` and the activation gate disappears.
  */
 
 type GalleryRow = {
@@ -41,79 +42,62 @@ export default async function GalleriesPage() {
     : { data: null };
 
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="px-6 py-8 sm:px-12">
-        <Link href="/" aria-label="Unbound — home" className="inline-block">
-          <img
-            src="/unbound-wordmark-white.png"
-            alt="UNBOUND"
-            className="block h-[15px] w-auto"
-          />
-        </Link>
-      </header>
+    <div className="flex flex-1 flex-col bg-canvas">
+      <AppNav email={user.email ?? ""} />
 
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-12 px-6 pb-24 pt-8 sm:px-12">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 pb-24 pt-10">
         {!account ? (
-          <section className="flex flex-col gap-6">
-            <div className="flex flex-col gap-3">
-              <p className="text-xs uppercase tracking-[0.3em] text-slate">
-                Unbound Galleries
-              </p>
-              <h1 className="font-display text-5xl text-parchment">
-                Deliver like it matters.
-              </h1>
-              <p className="max-w-md text-sm leading-relaxed text-pewter">
-                Client galleries with unlimited traffic and downloads. Your
-                photos are never deleted without your say-so.
-              </p>
+          <section className="mx-auto mt-10 max-w-md rounded-xl border border-line bg-neutral-0 p-8 shadow-sm">
+            <h1 className="text-2xl font-semibold tracking-tight text-heading">
+              Welcome to Unbound.
+            </h1>
+            <p className="mt-2 text-sm leading-relaxed text-muted">
+              One quick thing — what should we call you? A studio name, a
+              brand, or just your own.
+            </p>
+            <div className="mt-6">
+              <ActivateForm />
             </div>
-            <ActivateForm />
           </section>
         ) : (
           <>
-            <header className="flex flex-col gap-2">
-              <p className="text-xs uppercase tracking-[0.3em] text-slate">
-                {account.business_name}
-              </p>
-              <h1 className="font-display text-5xl text-parchment">
-                {galleries && galleries.length > 0
-                  ? "Your galleries."
-                  : "Your first gallery."}
-              </h1>
-            </header>
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-semibold tracking-tight text-heading">
+                  Galleries
+                </h1>
+                <p className="mt-1 text-sm text-muted">
+                  {account.business_name}
+                  {galleries && galleries.length > 0
+                    ? ` · ${galleries.length} ${galleries.length === 1 ? "gallery" : "galleries"}`
+                    : ""}
+                </p>
+              </div>
+            </div>
 
             {galleries && galleries.length > 0 ? (
-              <ul className="flex flex-col gap-px overflow-hidden rounded-md border border-stone">
+              <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {galleries.map((gallery) => (
                   <li key={gallery.id}>
                     <Link
                       href={`/galleries/${gallery.id}`}
-                      className="flex items-center justify-between gap-4 bg-charcoal px-5 py-4 transition-colors hover:bg-stone"
+                      className="block rounded-xl border border-line bg-neutral-0 p-5 shadow-xs transition-shadow hover:shadow-md"
                     >
-                      <span className="flex flex-col gap-1">
-                        <span className="text-base text-parchment">
-                          {gallery.title}
-                        </span>
-                        {gallery.event_date ? (
-                          <span className="text-xs text-slate">
-                            {gallery.event_date}
-                          </span>
-                        ) : null}
-                      </span>
-                      <span aria-hidden className="text-pewter">
-                        →
-                      </span>
+                      <p className="font-semibold text-heading">{gallery.title}</p>
+                      <p className="mt-1 text-sm text-muted">
+                        {gallery.event_date ?? "No date"}
+                      </p>
                     </Link>
                   </li>
                 ))}
               </ul>
             ) : null}
 
-            <section className="flex flex-col gap-5 border-t border-stone pt-10">
-              <h2 className="font-display text-3xl text-parchment">
-                New gallery.
-              </h2>
-              <NewGalleryForm />
+            <section className="mt-12 max-w-md rounded-xl border border-line bg-neutral-0 p-6 shadow-xs">
+              <h2 className="text-lg font-semibold text-heading">New gallery</h2>
+              <div className="mt-4">
+                <NewGalleryForm />
+              </div>
             </section>
           </>
         )}

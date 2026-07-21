@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase/env";
 
 /** Prefixes that require a signed-in couple. */
-const PROTECTED = ["/albums"];
+const PROTECTED = ["/albums", "/galleries", "/design"];
 
 /**
  * Runs before every page render: refreshes the auth session and writes the
@@ -62,7 +62,7 @@ export async function proxy(request: NextRequest) {
 
   if (user && pathname === "/login") {
     const url = request.nextUrl.clone();
-    url.pathname = "/albums";
+    url.pathname = "/galleries";
     url.search = "";
     return NextResponse.redirect(url);
   }

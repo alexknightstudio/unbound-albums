@@ -63,25 +63,25 @@ export default async function GalleryManagePage({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-10 px-6 py-16">
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 bg-canvas px-6 py-10">
       <Link
         href="/galleries"
-        className="text-xs text-slate transition-colors hover:text-pewter"
+        className="text-sm font-medium text-muted transition-colors hover:text-heading"
       >
         ← All galleries
       </Link>
 
       <header className="flex flex-col gap-3">
-        <h1 className="font-display text-5xl text-parchment">{gallery.title}</h1>
-        <p className="text-sm text-pewter">
+        <h1 className="text-3xl font-semibold tracking-tight text-heading">{gallery.title}</h1>
+        <p className="text-sm text-muted">
           {rows.length} {rows.length === 1 ? "photo" : "photos"}
           {gallery.password_hash ? " · password protected" : " · link-only"}
         </p>
-        <p className="text-xs text-slate">
+        <p className="text-sm text-muted">
           Client link:{" "}
           <Link
             href={`/g/${gallery.slug}`}
-            className="text-pewter underline-offset-4 hover:text-parchment hover:underline"
+            className="font-medium text-accent underline-offset-4 hover:underline"
           >
             {`/g/${gallery.slug}`}
           </Link>
@@ -94,9 +94,9 @@ export default async function GalleryManagePage({
           existingFilenames={rows.map((p) => p.filename)}
         />
       ) : (
-        <div className="rounded-md border border-stone p-6">
-          <p className="text-sm text-parchment">Storage isn&rsquo;t connected yet.</p>
-          <p className="mt-2 text-xs leading-relaxed text-slate">
+        <div className="rounded-xl border border-line bg-neutral-0 p-6 shadow-xs">
+          <p className="text-sm font-medium text-heading">Storage isn&rsquo;t connected yet.</p>
+          <p className="mt-2 text-sm leading-relaxed text-muted">
             Add the four R2 values to .env.local (see the Cloudflare checklist
             in DECISIONS.md), restart the dev server, and this page becomes the
             uploader.
@@ -109,7 +109,7 @@ export default async function GalleryManagePage({
           {rows.map((photo) => (
             <li
               key={photo.id}
-              className="overflow-hidden rounded-sm border border-stone"
+              className="overflow-hidden rounded-lg border border-line bg-neutral-0 shadow-xs"
             >
               {thumbUrls.has(photo.id) ? (
                 <img
@@ -119,7 +119,7 @@ export default async function GalleryManagePage({
                   className="aspect-square w-full object-cover"
                 />
               ) : (
-                <span className="flex aspect-square w-full items-center justify-center bg-charcoal p-1 text-center text-[13px] text-slate">
+                <span className="flex aspect-square w-full items-center justify-center bg-well p-1 text-center text-[13px] text-faint">
                   {photo.position}
                 </span>
               )}

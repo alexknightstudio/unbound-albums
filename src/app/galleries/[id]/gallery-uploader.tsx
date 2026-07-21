@@ -245,12 +245,12 @@ export function GalleryUploader({
           e.preventDefault();
           if (e.dataTransfer.files.length > 0) addFiles(e.dataTransfer.files);
         }}
-        className="flex flex-col items-center gap-3 rounded-md border border-dashed border-stone px-6 py-10 text-center"
+        className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-line-strong bg-neutral-0 px-6 py-10 text-center shadow-xs"
       >
-        <p className="font-display text-2xl text-parchment">
-          Drop the whole wedding.
+        <p className="text-lg font-semibold text-heading">
+          Drop the whole shoot.
         </p>
-        <p className="max-w-sm text-sm text-pewter">
+        <p className="max-w-sm text-sm text-muted">
           JPEGs, hundreds at a time. Uploads survive bad WiFi and closed tabs —
           re-pick the same files and they continue where they stopped.
         </p>
@@ -268,7 +268,7 @@ export function GalleryUploader({
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="mt-1 rounded-md bg-parchment px-6 py-3 text-sm text-ink transition-opacity hover:opacity-90"
+          className="mt-1 rounded-md bg-accent px-6 py-2.5 text-sm font-medium text-neutral-0 shadow-xs transition-colors hover:bg-accent-hover"
         >
           Choose photos
         </button>
@@ -277,18 +277,18 @@ export function GalleryUploader({
       {items.length > 0 ? (
         <div className="flex flex-col gap-3">
           <div className="flex items-baseline justify-between">
-            <span className="text-sm text-pewter">
+            <span className="text-sm text-body">
               {running
                 ? `${done} of ${items.length} delivered.`
                 : failed > 0
                   ? `${done} delivered. ${failed} need another try.`
                   : `${done} delivered.`}
             </span>
-            <span className="text-xs text-slate">{Math.round(overall * 100)}%</span>
+            <span className="text-sm text-muted">{Math.round(overall * 100)}%</span>
           </div>
-          <div className="h-px w-full overflow-hidden bg-stone">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-well">
             <div
-              className="h-px bg-parchment transition-[width] duration-300"
+              className="h-1.5 rounded-full bg-accent transition-[width] duration-300"
               style={{ width: `${overall * 100}%` }}
             />
           </div>
@@ -296,7 +296,7 @@ export function GalleryUploader({
             <button
               type="button"
               onClick={retryFailed}
-              className="self-start rounded-md border border-stone px-4 py-2 text-xs text-pewter transition-colors hover:border-pewter hover:text-parchment"
+              className="self-start rounded-md border border-line-strong bg-neutral-0 px-4 py-2 text-sm font-medium text-body shadow-xs transition-colors hover:bg-well"
             >
               Try those {failed} again
             </button>

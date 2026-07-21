@@ -69,14 +69,18 @@ orders       — id, album_id, stripe_session_id, amount, size, quantity,
 
 RLS: couples read/write only their own rows. Share links use unguessable slugs, read-only. Admin (Alex) role sees the order queue.
 
-## Brand — apply everywhere
+## Brand — apply everywhere (v2, 2026-07-21 — the light photo-SaaS system)
 
-- Strictly monochromatic: Ink #0A0A0A, Charcoal #1A1A18, Stone #2C2B28, White #FFFFFF, Parchment #FAF9F7, Linen #F0EDE8, Pewter #9A9890, Slate #6B6960. NO accent color, ever. The couple's photos are the only color in the product.
-- Type: Cormorant Garamond (display, 300 weight only at 36px+) + Jost (body/UI, 400 minimum). Nothing below 13px.
-- Dark-first UI (#0A0A0A) — photos pop on dark. Light sections (Parchment) for rhythm.
-- Border-radius 6px max. Generous spacing. Editorial, never bubbly.
-- Voice in all UI copy: warm, confident, short declaratives, periods not exclamation marks. Never "AI-powered," "algorithm," "seamless," "leverage." Say what it does: "Fifty photos of the sunset? We'll pick the one."
-- Tagline: "Your love story, *unbound.*" (italic, not color, for emphasis)
+**The old strict-monochrome, dark-first, Cormorant wedding-editorial system is RETIRED for app and marketing surfaces** (Alex's design-refresh directive; tokens approved 2026-07-21). New reference class: Pixieset/SmugMug — light, airy, calm, premium, never loud.
+
+- **Neutrals (cool gray ramp, tokens in globals.css):** surface #FFFFFF (`neutral-0`) · canvas #F8F9FB · well #F1F3F6 · line #E4E7EC · line-strong #D0D5DD · faint #98A2B3 · muted #667085 · body #344054 · heading #101828.
+- **ONE accent — Cobalt #2563EB** (`accent`, hover #1D4ED8, soft #EFF6FF, border #BFDBFE): primary CTAs, links, active nav, focus rings, selected states. Nothing else is blue. Functional green (#039855) and red (#D92D20) exist only for success/destructive moments.
+- **Type: Inter only** (400/500/600 — no light weights), headings semibold with tight tracking. Scale: 30/38 page titles · 24 stat numerals · 18/28 sections · 15/24 body · 14 UI labels (medium) · 13 captions; marketing hero up to ~60 semibold. Nothing below 13px.
+- **Spacing** on a 4px base (4→96). **Radius:** 8 default, 12 cards, pills allowed for badges/avatars. **Shadows:** the xs/sm/md/lg ramp in globals.css — soft, sub-10% opacity, never glows.
+- **The sacred exception:** the gallery viewer, lightbox, and unlock gate stay photo-forward on the near-black `viewer` surface (#101113) with minimal chrome — photos are the interface. SaaS styling stops at the gallery's edge. (The print SpreadRenderer likewise keeps its own white/linen page colors — print output never restyles.)
+- **Voice:** warm, confident, short declaratives, periods not exclamation marks. Never "AI-powered," "algorithm," "seamless," "leverage." Promise only what's built. No fake testimonials, stats, or reviews — ever.
+- **Tagline:** "Your photos, hosted beautifully." Audience: anyone first, photographers as the power users (PLATFORM_SPEC §12 Q2, answered 2026-07-21).
+- Legacy wedding-era tokens (ink/parchment/etc.) remain defined in globals.css ONLY so pre-P0 pages compile; do not use them in new code — they're removed with the de-wedding PR.
 
 ## Working agreements
 

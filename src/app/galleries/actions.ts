@@ -10,6 +10,12 @@ import { createClient } from "@/lib/supabase/server";
 
 export type GalleryActionState = { status: "idle" | "error"; message?: string };
 
+export async function signOut() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect("/login");
+}
+
 /** Turn a signed-in user into a photographer (the hosting product's account). */
 export async function activatePhotographerAccount(
   _prev: GalleryActionState,

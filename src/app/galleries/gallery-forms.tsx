@@ -11,9 +11,9 @@ import {
 
 const IDLE: GalleryActionState = { status: "idle" };
 
-const LABEL = "text-xs font-medium uppercase tracking-[2.5px] text-pewter";
+const LABEL = "text-sm font-medium text-body";
 const FIELD =
-  "w-full rounded-md border border-stone bg-charcoal px-[18px] py-[15px] text-base text-parchment placeholder:text-slate focus:border-pewter focus:outline-none [color-scheme:dark]";
+  "w-full rounded-md border border-line-strong bg-neutral-0 px-3.5 py-2.5 text-base text-heading shadow-xs placeholder:text-faint focus:border-accent focus:outline-none";
 
 function Submit({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -21,9 +21,9 @@ function Submit({ label }: { label: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="w-full rounded-md bg-parchment px-6 py-3.5 text-xs font-medium uppercase tracking-[2.5px] text-ink transition-opacity hover:opacity-90 disabled:opacity-50"
+      className="w-full rounded-md bg-accent px-6 py-2.5 text-sm font-medium text-neutral-0 shadow-xs transition-colors hover:bg-accent-hover disabled:opacity-50"
     >
-      {pending ? "One moment." : label}
+      {pending ? "One moment…" : label}
     </button>
   );
 }
@@ -31,7 +31,7 @@ function Submit({ label }: { label: string }) {
 function ErrorLine({ state }: { state: GalleryActionState }) {
   if (state.status !== "error") return null;
   return (
-    <p role="alert" className="text-sm text-pewter">
+    <p role="alert" className="text-sm text-danger">
       {state.message}
     </p>
   );

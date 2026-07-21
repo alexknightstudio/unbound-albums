@@ -30,7 +30,7 @@ export function GalleryUnlock({ slug }: { slug: string }) {
     <form onSubmit={submit} className="flex w-full max-w-sm flex-col gap-4">
       <label
         htmlFor="gallery-password"
-        className="text-xs font-medium uppercase tracking-[2.5px] text-pewter"
+        className="text-sm font-medium text-pewter"
       >
         Gallery password
       </label>
@@ -41,12 +41,12 @@ export function GalleryUnlock({ slug }: { slug: string }) {
         onChange={(e) => setPassword(e.target.value)}
         required
         autoFocus
-        className="w-full rounded-md border border-stone bg-charcoal px-[18px] py-[15px] text-base text-parchment placeholder:text-slate focus:border-pewter focus:outline-none"
+        className="w-full rounded-md border border-stone bg-charcoal px-3.5 py-2.5 text-base text-parchment placeholder:text-slate focus:border-pewter focus:outline-none"
       />
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-md bg-parchment px-6 py-3.5 text-xs font-medium uppercase tracking-[2.5px] text-ink transition-opacity hover:opacity-90 disabled:opacity-50"
+        className="w-full rounded-md bg-parchment px-6 py-2.5 text-sm font-medium text-ink transition-opacity hover:opacity-90 disabled:opacity-50"
       >
         {pending ? "One moment." : "Open the gallery"}
       </button>

@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
  * genuinely originates from our domain.
  */
 function safeNext(raw: string | null): string {
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/albums";
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/galleries";
   return raw;
 }
 

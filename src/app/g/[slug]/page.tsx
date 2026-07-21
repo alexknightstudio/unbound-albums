@@ -77,7 +77,8 @@ export default async function PublicGalleryPage({
   }
 
   const shell = (children: React.ReactNode) => (
-    <main className="mx-auto flex min-h-svh w-full max-w-6xl flex-1 flex-col px-6 py-14 sm:px-10">
+    <main className="flex min-h-svh w-full flex-1 flex-col bg-viewer px-6 py-14 text-parchment sm:px-10">
+      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col">
       <header className="flex flex-col items-center gap-2 pb-12 text-center">
         {account ? (
           <p className="text-xs uppercase tracking-[0.3em] text-slate">
@@ -91,7 +92,8 @@ export default async function PublicGalleryPage({
           <p className="text-sm text-pewter">{gallery.event_date}</p>
         ) : null}
       </header>
-      {children}
+        {children}
+      </div>
     </main>
   );
 
