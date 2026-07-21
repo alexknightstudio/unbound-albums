@@ -40,6 +40,9 @@ if (!title || !search) {
 }
 const count = Number(countRaw ?? 10);
 const visibility = visibilityRaw ?? "public";
+// --portrait keeps only vertical frames: most people shoot on a phone, so a
+// demo full of landscapes quietly says "this product is for DSLR owners".
+const portraitOnly = process.argv.includes("--portrait");
 
 const admin = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
@@ -69,6 +72,12 @@ async function politeFetch(url, attempt = 1) {
   }
   return res;
 }
+
+// Commons is full of scanned paintings and engravings — fine art, wrong
+// signal for a product about photographs people took.
+const ARTWORK = /painting|oil on canvas|engrav|watercolou?r|lithograph|etching|drawing|sketch|woodcut|illustration|\b1[6-8]\d{2}\b|\b18\d{2}-1[89]\d{2}\b/i;
+const looksLikeArtwork = (title, author) =>
+  ARTWORK.test(title) || ARTWORK.test(author);
 
 const strip = (html) =>
   String(html ?? "")
@@ -120,11 +129,13 @@ const candidates = pages
     (c) =>
       c &&
       c.mime === "image/jpeg" &&
-      c.width >= 1200 &&
-      c.height >= 800 &&
-      // Skip absurd panoramas — they wreck a justified row.
+      !looksLikeArtwork(c.title, c.author) &&
+      (portraitOnly
+        ? c.height > c.width * 1.15 && c.width >= 800
+        : c.width >= 1200 && c.height >= 800) &&
+      // Skip absurd panoramas and slivers — they wreck a justified row.
       c.width / c.height < 3 &&
-      c.height / c.width < 2.2,
+      c.height / c.width < 2.4,
   );
 
 // Interleave so a row never shows six frames of the same subject.

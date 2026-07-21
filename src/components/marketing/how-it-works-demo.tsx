@@ -56,21 +56,21 @@ const NEXT: Record<Phase, Phase> = {
 type Box = [number, number, number, number];
 
 const EVEN_GRID: Box[] = [
-  [0, 0, 32, 48],
-  [34, 0, 32, 48],
-  [68, 0, 32, 48],
-  [0, 52, 32, 48],
-  [34, 52, 32, 48],
-  [68, 52, 32, 48],
+  [0, 0, 32, 49],
+  [34, 0, 32, 49],
+  [68, 0, 32, 49],
+  [0, 51, 32, 49],
+  [34, 51, 32, 49],
+  [68, 51, 32, 49],
 ];
 
 /** After the AI pass: photo 3 is promoted, the rest re-flow around it. */
 const ARRANGED: Box[] = [
-  [51, 0, 23.5, 32],
-  [76.5, 0, 23.5, 32],
-  [0, 0, 49, 100], // the highlight
-  [51, 34, 49, 32],
-  [51, 68, 23.5, 32],
+  [51, 0, 23.5, 49], // tall column A
+  [76.5, 0, 23.5, 32], // column B stacks three
+  [0, 0, 49, 100], // the highlight — a full-height portrait
+  [51, 51, 23.5, 49],
+  [76.5, 34, 23.5, 32],
   [76.5, 68, 23.5, 32],
 ];
 
@@ -174,7 +174,7 @@ export function HowItWorksDemo({ photoUrls }: { photoUrls: string[] }) {
 
   // The dragged stack travels from the corner into the zone.
   const stackPos: [number, number] =
-    phase === "reach" ? [2, 88] : phase === "grab" ? [10, 76] : [42, 36];
+    phase === "reach" ? [3, 74] : phase === "grab" ? [11, 62] : [44, 30];
 
   return (
     <figure className="m-0">
@@ -199,7 +199,7 @@ export function HowItWorksDemo({ photoUrls }: { photoUrls: string[] }) {
         <div className="relative px-4 pb-4 pt-4">
           <div
             className="relative w-full overflow-hidden"
-            style={{ aspectRatio: "16 / 10" }}
+            style={{ aspectRatio: "4 / 3" }}
           >
             {/* Drop zone — swells when the photos land, then hands off to the grid */}
             <div
@@ -271,7 +271,7 @@ export function HowItWorksDemo({ photoUrls }: { photoUrls: string[] }) {
               style={{
                 left: `${stackPos[0]}%`,
                 top: `${stackPos[1]}%`,
-                width: "26%",
+                width: "19%",
                 opacity: showStack ? (phase === "drop" ? 0 : 1) : 0,
                 transform: `scale(${holding ? 1.04 : 1})`,
                 transition: reduced
@@ -288,7 +288,7 @@ export function HowItWorksDemo({ photoUrls }: { photoUrls: string[] }) {
                     left: `${i * 7}%`,
                     top: `${i * -6}px`,
                     width: "100%",
-                    aspectRatio: "3 / 2",
+                    aspectRatio: "3 / 4",
                     transform: `rotate(${(i - 1) * 4}deg)`,
                     boxShadow: holding
                       ? "0 12px 24px -6px rgba(16,24,40,0.35)"
