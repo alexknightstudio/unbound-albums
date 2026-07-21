@@ -1,5 +1,4 @@
 /* eslint-disable @next/next/no-img-element */
-import { Inter } from "next/font/google";
 import { redirect } from "next/navigation";
 
 import { r2Configured, signedGetUrl } from "@/lib/galleries/r2";
@@ -14,8 +13,6 @@ import { createClient } from "@/lib/supabase/server";
  * globals.css as CSS custom properties + Tailwind theme, and this page dies.
  * Signed-in only (it shows real gallery thumbnails).
  */
-
-const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600"] });
 
 // ——— Tokens v1 (the proposal) ———
 const T = {
@@ -76,7 +73,6 @@ export default async function DesignPreviewPage() {
 
   return (
     <div
-      className={inter.className}
       style={{ background: T.n50, minHeight: "100svh", color: T.n700, fontSize: 15, lineHeight: 1.6 }}
     >
       {/* Top nav */}

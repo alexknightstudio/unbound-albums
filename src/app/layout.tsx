@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const inter = Inter({
+// Vendored variable font — builds never depend on Google's availability.
+const inter = localFont({
   variable: "--font-inter",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  src: "../fonts/inter-var.woff2",
+  weight: "100 900",
   display: "swap",
 });
 
