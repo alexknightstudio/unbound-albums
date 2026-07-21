@@ -1,7 +1,9 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 
+import { HowItWorksDemo } from "@/components/marketing/how-it-works-demo";
 import { Reveal } from "@/components/marketing/reveal";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { formatPlanPrice, PLANS } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
 
@@ -26,43 +28,6 @@ const VALUE_PROPS = [
   },
 ];
 
-function HeroMock() {
-  const tiles = [
-    { w: "32%", ar: "3 / 2", bg: "#DCE3EC" },
-    { w: "23%", ar: "2 / 3", bg: "#E8E2D9" },
-    { w: "41%", ar: "16 / 9", bg: "#D7DDD3" },
-    { w: "27%", ar: "1 / 1", bg: "#E3DAD5" },
-    { w: "44%", ar: "3 / 2", bg: "#D9E0E7" },
-    { w: "25%", ar: "2 / 3", bg: "#E6E6E0" },
-  ];
-  return (
-    <div
-      aria-hidden
-      className="rounded-xl border border-line bg-neutral-0 p-3 shadow-lg sm:p-4"
-    >
-      <div className="mb-3 flex items-center justify-between px-1">
-        <div className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-well" />
-          <span className="h-2.5 w-2.5 rounded-full bg-well" />
-          <span className="h-2.5 w-2.5 rounded-full bg-well" />
-        </div>
-        <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-accent">
-          Public
-        </span>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {tiles.map((t, i) => (
-          <div
-            key={i}
-            className="grow rounded-md"
-            style={{ flexBasis: t.w, aspectRatio: t.ar, background: t.bg }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export default async function Home() {
   const supabase = await createClient();
   const {
@@ -70,6 +35,27 @@ export default async function Home() {
   } = await supabase.auth.getUser();
 
   const ctaHref = user ? "/galleries" : "/login";
+
+  // Real photographs from a live public gallery drive the hero demo — the
+  // homepage shows the actual product, never mockup boxes.
+  const admin = createAdminClient();
+  const { data: demoGallery } = await admin
+    .from("galleries")
+    .select("id")
+    .eq("visibility", "public")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<{ id: string }>();
+  const { data: demoRows } = demoGallery
+    ? await admin
+        .from("gallery_photos")
+        .select("id")
+        .eq("gallery_id", demoGallery.id)
+        .order("position")
+        .limit(6)
+        .returns<Array<{ id: string }>>()
+    : { data: [] };
+  const demoPhotos = (demoRows ?? []).map((p) => `/i/${p.id}`);
 
   return (
     <main className="flex-1 bg-neutral-0 text-body">
@@ -126,9 +112,11 @@ export default async function Home() {
             Free plan, no card. 10 GB to start.
           </p>
         </div>
-        <Reveal className="mx-auto mt-14 max-w-3xl">
-          <HeroMock />
-        </Reveal>
+        {demoPhotos.length >= 6 ? (
+          <Reveal className="mx-auto mt-14 max-w-3xl">
+            <HowItWorksDemo photoUrls={demoPhotos} />
+          </Reveal>
+        ) : null}
       </section>
 
       {/* Value props */}
